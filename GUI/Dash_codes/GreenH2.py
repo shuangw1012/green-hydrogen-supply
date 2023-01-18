@@ -714,12 +714,12 @@ app.layout = html.Div(
                              " Low-carbon Transition Cooperative Research Centre whose activities are"
                              " funded by the Australian Governments Cooperative Research Centre Program."),
                     style={'text-align': 'left', 'padding': 3, }),
-            dbc.Row([html.Div("For more information please contact: "),
-                      html.Br(),
-                     html.Div("Dr Ahmad Mojiri (ahmad.mojiri@anu.edu.au)"),
-                     html.Br(),
-                     html.Div("A/Professor Joe Coventry (joe.coventry@anu.edu.au)"), ],
-                    style={'text-align': 'left', 'padding': 3, }),
+            dbc.Row(html.Div("For more information please contact: ") ),
+                      # html.Br(),
+            dbc.Row(html.Div("Dr Ahmad Mojiri (ahmad.mojiri@anu.edu.au)") ),
+                     # html.Br(),
+            dbc.Row(html.Div("A/Professor Joe Coventry (joe.coventry@anu.edu.au)") ),
+                    # style={'text-align': 'left', 'padding': 3, }),
         ],
             style={'padding-bottom': '20px', 'margin-right': '5%', 'margin-left': '5%'}),
     ])
