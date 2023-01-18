@@ -143,7 +143,8 @@ app.layout = html.Div(
                                     options=locations,
                                     multi=False,
                                     searchable=True,
-                                    placeholder='Select a location!'
+                                    placeholder='Select a location!',
+                                    style={'width':'100%'}
                                     ),width={'size':2, 'offset':0}
                     )
                     ,
@@ -163,7 +164,7 @@ app.layout = html.Div(
                                        min=0.1, max=1.0,
                                        step=0.05, style={}), width=2,
                         ),
-                        dbc.Col(width=2),
+                        dbc.Col(width=1),
 
 #Storage type                        
                         dbc.Label("UG Storage type:", width=3, style={'padding-right': 2}),
