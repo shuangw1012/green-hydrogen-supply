@@ -4,8 +4,7 @@
 """
 
 import dash
-from dash import dcc
-from dash import html
+from dash import dcc, Dash, html
 from dash.dependencies import Input, Output, State
 import pandas as pd
 from datetime import datetime
@@ -716,7 +715,7 @@ app.layout = html.Div(
                              " funded by the Australian Governments Cooperative Research Centre Program."),
                     style={'text-align': 'left', 'padding': 3, }),
             dbc.Row([html.Div("For more information please contact: "),
-                     html.Br(),
+                      html.Br(),
                      html.Div("Dr Ahmad Mojiri (ahmad.mojiri@anu.edu.au)"),
                      html.Br(),
                      html.Div("A/Professor Joe Coventry (joe.coventry@anu.edu.au)"), ],
