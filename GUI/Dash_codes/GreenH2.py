@@ -451,8 +451,7 @@ app.layout = html.Div(
                   'border-bottom': '3px solid #3B8B76', 'margin-right': '5%', 'margin-left': '5%'}),
 # section 2
         html.Div([
-            html.Div(children=[dbc.Row(
-                [
+            html.Div(children=[
 
 #Choose plotting variabe
                     dbc.Row([
@@ -474,10 +473,7 @@ app.layout = html.Div(
                             ], width=5, style={}),
 
                     ]),
-                ],
-                className="",
-                style={'padding-top': '20px', }
-            ), ], style={'font-size': '13px', 'padding': 5, 'margin': 10, 'flex': 1,
+                ], style={'font-size': '13px', 'padding': 5, 'margin': 10, 'flex': 1,
                          }),
             html.Div(children=[dbc.Row(
                 dbc.Col(dcc.Graph(
