@@ -507,7 +507,7 @@ app.layout = html.Div(
                                        min=0.0,
                                        value=6,
                                        step=0.1,
-                                ), width=2,
+                                ), width=3,
                             ),
                             dbc.Label("Percent [%]", width=2, style={'padding-right': 2}),
                         ],
@@ -709,7 +709,7 @@ app.layout = html.Div(
                              " Low-carbon Transition Cooperative Research Centre whose activities are"
                              " funded by the Australian Governments Cooperative Research Centre Program."),
                     style={'text-align': 'left', 'padding': 3, }),
-            dbc.Row([html.Div("For more information please contact:"),
+            dbc.Row([html.Div("For more information please contact: "),
                      html.Br(),
                      html.Div("Dr Ahmad Mojiri (ahmad.mojiri@anu.edu.au)"),
                      html.Br(),
