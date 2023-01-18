@@ -145,7 +145,7 @@ app.layout = html.Div(
                                     searchable=True,
                                     placeholder='Select a location!',
                                     style={'width':'100%'}
-                                    ),width={'size':2, 'offset':0}
+                                    ),width={'size':3, 'offset':0}
                     )
                     ,
                 ],
