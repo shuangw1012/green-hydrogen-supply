@@ -168,7 +168,7 @@ app.layout = html.Div(
 
 #Storage type                        
                         dbc.Label("UG Storage type:", width=3, 
-                                  style={'padding-right': 2,
+                                  style={'padding-right': 15,
                                          'textAlign': 'right'}),
                         dbc.Col(
                             dcc.Dropdown( id='storage_selector',
