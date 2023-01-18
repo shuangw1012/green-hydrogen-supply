@@ -463,9 +463,11 @@ app.layout = html.Div(
                             style={'text-align': ''}),
 
 #Download timeseries
-                        dbc.Col(dbc.Button(
+                        dbc.Col([dbc.Button(
                             "Download Data!", id="download", className="me-1", n_clicks=0,
-                        ), width=5, style={}),
+                        ),
+                            dcc.Download(id='download_data_csv')
+                            ], width=5, style={}),
 
                     ]),
                 ],
