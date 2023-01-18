@@ -105,7 +105,7 @@ app.layout = html.Div(
     [
         html.Div(
             # header
-            [dbc.Row(html.H2("Green H2",style={'color': '#3B8B76', 'padding': 3, 'textAlign': 'center'}), ),
+            [dbc.Row(html.H2("Green H2",style={'color': 'red', 'padding': 3, 'textAlign': 'center'}), ),
              dbc.Row(html.H2("Australian National University",
                              style={'color': '#3B8B76', 'padding': 3, 'textAlign': 'center'}),
                      ),
