@@ -552,7 +552,7 @@ app.layout = html.Div(
                                        step=0.1,
                                 ), width=2,
                             ),
-                            dbc.Label("Years", width=2, style={'padding-right': 2}),
+                            dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
                         ],
                         className="",
                         style={'padding': 3}
@@ -596,7 +596,7 @@ app.layout = html.Div(
                     ),
                     
                     
-
+#VOM PV 
                     dbc.Row(
                         [
                             dbc.Label("VOM PV:", width=3, style={'padding-right': 2}),
@@ -608,29 +608,28 @@ app.layout = html.Div(
                                        step=0.001,
                                 ), width=2,
                             ),
-                            dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
+                            dbc.Label("USD/kWh", width=2, style={'padding-right': 2}),
                         ],
                         className="",
                         style={'padding': 3}
                     ),
                     
-#VOM PV   
-                    dbc.Row(
-                        [
-                            dbc.Label("FOM PV:", width=3, style={'padding-right': 2}),
-                            dbc.Col(
-                                dbc.Input(
-                                    id="pv_vom", type="number",
-                                       min=0.0,
-                                       value=0,
-                                       step=0.001,
-                                ), width=2,
-                            ),
-                            dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
-                        ],
-                        className="",
-                        style={'padding': 3}
-                    ),
+  
+                    # dbc.Row(
+                    #     [
+                    #         dbc.Label("FOM PV:", width=3, style={'padding-right': 2}),
+                    #         dbc.Col(
+                    #             dbc.Input(
+                    #                 id="pv_fom", type="number",
+                    #                    min=0.0,
+                    #                    value=12.7,
+                    #                    step=0.1,), width=2,
+                    #         ),
+                    #         dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
+                    #     ],
+                    #     className="",
+                    #     style={'padding': 3}
+                    # ),
                     
 
 #VOM WIND
@@ -645,7 +644,7 @@ app.layout = html.Div(
                                        step=0.001
                                 ), width=2,
                             ),
-                            dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
+                            dbc.Label("USD/kWh", width=2, style={'padding-right': 2}),
                         ],
                         className="",
                         style={'padding': 3}
