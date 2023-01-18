@@ -372,7 +372,7 @@ app.layout = html.Div(
 #Load 
                 dbc.Row(
                     [
-                        dbc.Label("Load", width=3, style={'padding-right': 2}),
+                        dbc.Label("Load:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
                                 id="LOAD", type="number",
@@ -514,7 +514,7 @@ app.layout = html.Div(
                                        step=0.1,
                                 ), width=3,
                             ),
-                            dbc.Label("Percent [%]", width=2, style={'padding-right': 2}),
+                            dbc.Label("Percent", width=2, style={'padding-right': 2}),
                         ],
                         className="",
                         style={'padding': 3}
