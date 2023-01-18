@@ -499,12 +499,14 @@ app.layout = html.Div(
 
 # section 3
         html.Div([
-            html.Div(children=[dbc.Row(
-                [
+            html.Div(children=[
+                
+
+#Interest rate 
                     dbc.Row(
                         [
                         
-#Interest rate 
+
                             dbc.Label("Interest rate:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
@@ -680,10 +682,7 @@ app.layout = html.Div(
                             ), ),
                         ], style={'padding': 3},
                     )
-                ],
-                className="",
-                style={'padding-top': '20px', }
-            ), ], style={'font-size': '13px', 'padding': 5, 'margin': 10, 'flex': 1,
+                , ], style={'font-size': '13px', 'padding': 5, 'margin': 10, 'flex': 1,
                          }),
             html.Div(children=[
 
