@@ -130,13 +130,13 @@ app.layout = html.Div(
                     
                     dbc.Col(width=2),
                     # dbc.Label("None has been selected!", width=3, style={'padding-right': 2}),
-                    dcc.Loading(
+                   dbc.Col( dcc.Loading(
                                 id="Lolcation_Status",
                                 type="default",
                                 children= html.Div('None has been selected!',
                                                    id='location_status',
                                                    style={'textAlign': 'right'}),
-                                width=3, style={'padding-right': 2}),
+                                style={'padding-right': 2}), width=3),
                     dbc.Col(
                         dcc.Dropdown( id='location_selector',
                                     options=locations,
