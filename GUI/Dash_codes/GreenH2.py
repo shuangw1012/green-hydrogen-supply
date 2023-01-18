@@ -118,7 +118,7 @@ app.layout = html.Div(
             html.Div(children=[
                 dbc.Row([
                     dbc.Label("Electrolyser efficiency:", width=3, style={'padding-right': 2}),
-                    dbc.Col(dcc.Input(id="EL_ETA", type="number",
+                    dbc.Col(dbc.Input(id="EL_ETA", type="number",
                                        value=0.7,
                                        min=0.5,
                                        max=1.0,
@@ -128,7 +128,7 @@ app.layout = html.Div(
                     
 #Location 
                     
-                    dbc.Col(width=2),
+                    dbc.Col(width=1),
                     # dbc.Label("None has been selected!", width=3, style={'padding-right': 2}),
                    dbc.Col( dcc.Loading(
                                 id="Lolcation_Status",
@@ -156,39 +156,55 @@ app.layout = html.Div(
                     [
                         dbc.Label("Battery charging efficiency:", width=3, style={'padding-right': 2}),
                         dbc.Col(
-                            dbc.Input(
-                                type="number", placeholder="0.95", id="examddple-password-row"
-                            ), width=2,
+                           dcc.Input(id="BAT_ETA_IN", type="number",
+                                       value=0.95,
+                                       min=0.1, max=1.0,
+                                       step=0.05, style={}), width=2,
                         ),
                         dbc.Col(width=2),
+ #Storage type                        
                         dbc.Label("UG Storage type:", width=3, style={'padding-right': 2}),
                         dbc.Col(
-                            dcc.Dropdown(['Salt', 'Rock'])
+                            dcc.Dropdown( id='storage_selector',
+                                 options=storage_types,
+                                 multi=False,
+                                 searchable=True,
+                                 placeholder='Select UG storage')
                         )
                         ,
                     ],
                     className="",
                     style={'padding': 3}
                 ),
+#Battery discharging efficiency 
                 dbc.Row(
                     [
                         dbc.Label("Battery discharging efficiency:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.95"
+                               id="BAT_ETA_OUT", type="number",
+                                       min=0.1, max=1.0,
+                                       value=0.95,
+                                       step=0.05, style={}
                             ), width=2,
                         ),
 
                     ],
                     className="",
                     style={'padding': 3}
-                ),
+                ),  
+
+
+#Cost of PV    
                 dbc.Row(
                     [
                         dbc.Label("Unit cost of PV:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                               id="C_PV", type="number",
+                                       min=0.0,
+                                       value=1122,
+                                       step=1
                             ), width=2,
                         ),
                         dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
