@@ -112,7 +112,8 @@ app.layout = html.Div(
              ],
             style={'padding-bottom': '20px', 'padding-top': '20px',
                    'border-bottom': '3px solid #3B8B76', 'margin-right': '5%', 'margin-left': '5%'}),
-        # section 1
+
+# section 1
         html.Div([
 
             html.Div(children=[
@@ -148,21 +149,23 @@ app.layout = html.Div(
                     ,
                 ],
                     
-#Battery charging efficiency                      
                     className="",
                     style={'padding': 3}
                 ),
+
+#Battery charging efficiency                      
                 dbc.Row(
                     [
                         dbc.Label("Battery charging efficiency:", width=3, style={'padding-right': 2}),
                         dbc.Col(
-                           dcc.Input(id="BAT_ETA_IN", type="number",
+                           dbc.Input(id="BAT_ETA_IN", type="number",
                                        value=0.95,
                                        min=0.1, max=1.0,
                                        step=0.05, style={}), width=2,
                         ),
                         dbc.Col(width=2),
- #Storage type                        
+
+#Storage type                        
                         dbc.Label("UG Storage type:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dcc.Dropdown( id='storage_selector',
@@ -176,6 +179,7 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
 #Battery discharging efficiency 
                 dbc.Row(
                     [
@@ -212,12 +216,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#Cost of Wind   
                 dbc.Row(
                     [
                         dbc.Label("Unit cost of Wind:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="C_WIND", type="number",
+                                       min=0.0,
+                                       value=1455,
+                                       step=1,
                             ), width=2,
                         ),
                         dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -227,12 +236,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#Cost of Electrolyser
                 dbc.Row(
                     [
                         dbc.Label("Unit cost of Electrolyser:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="C_EL", type="number",
+                                       min=0.0,
+                                       value=1067,
+                                       step=1,
                             ), width=2,
                         ),
                         dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -241,12 +255,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#UG_STORAGE_CAPA_MAX
                 dbc.Row(
                     [
                         dbc.Label("UG storage max capacity:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="UG_STORAGE_CAPA_MAX", type="number",
+                                       min=0.0,
+                                       value=0,
+                                       step=1000,
                             ), width=2,
                         ),
                         dbc.Label("kg of H2", width=2, style={'padding-right': 2}),
@@ -254,12 +273,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#C_PIPE_STORAGE 
                 dbc.Row(
                     [
                         dbc.Label("Unit cost of pipe storage:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="C_PIPE_STORAGE", type="number",
+                                       min=0.0,
+                                       value=516,
+                                       step=1,
                             ), width=2,
                         ),
                         dbc.Label("USD/kg of H2", width=2, style={'padding-right': 2}),
@@ -267,12 +291,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#PIPE_STORAGE_CAPA_MIN 
                 dbc.Row(
                     [
                         dbc.Label("Pipe storage min capacity:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="PIPE_STORAGE_CAPA_MIN", type="number",
+                                       min=0.0,
+                                       value=0,
+                                       step=1000,
                             ), width=2,
                         ),
                         dbc.Label("kg of H2", width=2, style={'padding-right': 2}),
@@ -280,12 +309,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#C_BAT_ENERGY
                 dbc.Row(
                     [
                         dbc.Label("Battery energy unit price:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="C_BAT_ENERGY", type="number",
+                                       min=0.0,
+                                       value=196,
+                                       step=1,
                             ), width=2,
                         ),
                         dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -293,12 +327,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#C_BAT_POWER  
                 dbc.Row(
                     [
                         dbc.Label("Battery power unit price:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="C_BAT_POWER", type="number",
+                                       min=0,
+                                       value=405,
+                                       step=1,
                             ), width=2,
                         ),
                         dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -306,12 +345,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#CF
                 dbc.Row(
                     [
                         dbc.Label("Capcaity factor:", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="CF", type="number",
+                                       min=1, max=100,
+                                       value=100,
+                                       step=1,
                             ), width=2,
                         ),
                         dbc.Label("Percent[%]", width=2, style={'padding-right': 2}),
@@ -319,26 +363,46 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+#Load 
                 dbc.Row(
                     [
                         dbc.Label("Load", width=3, style={'padding-right': 2}),
                         dbc.Col(
                             dbc.Input(
-                                type="number", placeholder="0.7"
+                                id="LOAD", type="number",
+                                       min=0.0,
+                                       value=5.0,
+                                       step=0.05,
                             ), width=2,
                         ),
                         dbc.Label("kgH2/s", width=2, style={'padding-right': 2}),
-                        dbc.Col(width=3),
+                        dbc.Col(width=1),
+                        
+#Optimisation
+                        dbc.Col(dcc.Loading(
+                                    id="OPTIMISATION_TEXT",
+                                    type="default",
+                                    children= html.Div('Progress!',
+                                                       id='optimisation_text')),
+                                 width={'size':1, 'offset':0}
+                                 ),
+                        
+#Run optimisation
                         dbc.Col(dbc.Button(
-                            "Optimise!", id="example-button", className="me-1", n_clicks=0
+                            "Optimise!", id="Optimise", className="me-1", n_clicks=0
                         ), ),
                     ],
                     className="",
                     style={'padding': 3}
                 ),
+                
+
 
             ], style={'font-size': '13px', 'padding-right': '2%', 'margin': 10, 'flex': 1,
                       'border-right': '1px dotted black'}),
+                      
+#print results
 
             html.Div(children=[
                 dbc.Row(dbc.Col(width=12),
@@ -351,8 +415,8 @@ app.layout = html.Div(
                         dbc.Col(
                             # dbc.Label("Result:", width=2, style={'padding-right': 2}),
                             dcc.Textarea(
-                                title='',
-                                id='textarea-example',
+                                id='Output',
+                                readOnly=True,
                                 value='Result....',
                                 style={'width': '85%', 'height': 300},
                             ),
@@ -362,12 +426,17 @@ app.layout = html.Div(
                     className="",
                     style={'padding': 3}
                 ),
+                
+                
+#Export output
                 dbc.Row([
-                    dbc.Col(dbc.Button(
-                        "Export!", id="export", className="me-1", n_clicks=0,
-                    ), width=11, style={'text-align': 'right'}),
+                    dbc.Col([dbc.Button("Export!", id="export",
+                                        className="me-1", n_clicks=0,),
+                             dcc.Download(id='download_csv')],
+                            width=11, style={'text-align': 'right'}),
 
                 ]),
+                
                 dbc.Row(dbc.Col(width=12),
                         style={'height': '20pt'}),
 
@@ -376,17 +445,24 @@ app.layout = html.Div(
 
         ], style={'display': 'flex', 'flex-direction': 'row', 'padding-bottom': '20px', 'padding-top': '20px',
                   'border-bottom': '3px solid #3B8B76', 'margin-right': '5%', 'margin-left': '5%'}),
-        # section 2
+# section 2
         html.Div([
             html.Div(children=[dbc.Row(
                 [
+
+#Choose plotting variabe
                     dbc.Row([
                         dbc.Col(
-                            dcc.Dropdown(['PV output', 'Winf output'], 'Choose a variable',
-                                         style={}, multi=True), width=7,
+                            dcc.Dropdown(id='variable_selector',
+                                          options=results_var,
+                                          multi=True,
+                                          searchable=True,
+                                          placeholder='Choose a variable!'),
+                            width=7,
 
                             style={'text-align': ''}),
 
+#Download timeseries
                         dbc.Col(dbc.Button(
                             "Download Data!", id="download", className="me-1", n_clicks=0,
                         ), width=5, style={}),
@@ -399,11 +475,9 @@ app.layout = html.Div(
                          }),
             html.Div(children=[dbc.Row(
                 dbc.Col(dcc.Graph(
+                    id='GraphI',
                     figure={
-                        'data': [
-                            {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-                            {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal'},
-                        ],
+                        'data': [],
                         'layout': {
                             'title': 'Dash Data Visualization'
                         }
@@ -415,16 +489,22 @@ app.layout = html.Div(
         ], style={'display': 'flex', 'flex-direction': 'row', 'border-bottom': '3px solid #3B8B76',
                   'margin-right': '5%',
                   'margin-left': '5%'}),
-        # section 3
+
+# section 3
         html.Div([
             html.Div(children=[dbc.Row(
                 [
                     dbc.Row(
                         [
+                        
+#Interest rate 
                             dbc.Label("Interest rate:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="interest_rate", type="number",
+                                       min=0.0,
+                                       value=6,
+                                       step=0.1,
                                 ), width=2,
                             ),
                             dbc.Label("Percent [%]", width=2, style={'padding-right': 2}),
@@ -432,12 +512,17 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+#Lifetime
                     dbc.Row(
                         [
                             dbc.Label("Lifetime:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="lifetime", type="number",
+                                       min=0.0,
+                                       value=25,
+                                       step=1,
                                 ), width=2,
                             ),
                             dbc.Label("Years", width=2, style={'padding-right': 2}),
@@ -445,12 +530,17 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+#FOM PV   
                     dbc.Row(
                         [
                             dbc.Label("FOM PV:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="pv_fom", type="number",
+                                       min=0.0,
+                                       value=12.7,
+                                       step=0.1,
                                 ), width=2,
                             ),
                             dbc.Label("Years", width=2, style={'padding-right': 2}),
@@ -458,12 +548,17 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+#FOM WIND 
                     dbc.Row(
                         [
                             dbc.Label("FOM Wind:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="wind_fom", type="number",
+                                       min=0.0,
+                                       value=18.7,
+                                       step=0.1,
                                 ), width=2,
                             ),
                             dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -471,12 +566,18 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+                    
+#FOM Electrolyser      
                     dbc.Row(
                         [
                             dbc.Label("FOM Electrolyser:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="elec_fom", type="number",
+                                       min=0.0,
+                                       value=37.3,
+                                       step=0.1,
                                 ), width=2,
                             ),
                             dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -484,6 +585,9 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+                    
+
                     dbc.Row(
                         [
                             dbc.Label("VOM PV:", width=3, style={'padding-right': 2}),
@@ -497,12 +601,17 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+#VOM PV   
                     dbc.Row(
                         [
                             dbc.Label("FOM PV:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="pv_vom", type="number",
+                                       min=0.0,
+                                       value=0,
+                                       step=0.001,
                                 ), width=2,
                             ),
                             dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -510,12 +619,18 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+
+#VOM WIND
                     dbc.Row(
                         [
                             dbc.Label("VOM Wind:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="wind_vom", type="number",
+                                       min=0.0,
+                                       value=0,
+                                       step=0.001
                                 ), width=2,
                             ),
                             dbc.Label("USD/kW", width=2, style={'padding-right': 2}),
@@ -523,12 +638,18 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+
+#VOM Electrolyser
                     dbc.Row(
                         [
                             dbc.Label("VOM Electrolyser:", width=3, style={'padding-right': 2}),
                             dbc.Col(
                                 dbc.Input(
-                                    type="number", placeholder="0.7"
+                                    id="elec_vom", type="number",
+                                       min=0.0,
+                                       value=0.075,
+                                       step=0.001,
                                 ), width=2,
                             ),
                             dbc.Label("USD/kg of H2", width=2, style={'padding-right': 2}),
@@ -538,6 +659,9 @@ app.layout = html.Div(
                         className="",
                         style={'padding': 3}
                     ),
+                    
+
+#Calculate LCOH2
                     dbc.Row(
                         style={'height': '30px'},
                     ),
@@ -545,7 +669,7 @@ app.layout = html.Div(
                         [
                             dbc.Col(width=4),
                             dbc.Col(dbc.Button(
-                                "Calculate LCOH2!", id="ebutton", className="me-1", n_clicks=0
+                                "Calculate LCOH2!", id="LCOH2", className="me-1", n_clicks=0
                             ), ),
                         ], style={'padding': 3},
                     )
@@ -558,12 +682,11 @@ app.layout = html.Div(
 
                 dbc.Row(
 
+#plot LCOH2                
                     dbc.Col(dcc.Graph(
+                        id='graph_LCOH2',
                         figure={
-                            'data': [
-                                {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-                                {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal'},
-                            ],
+                            'data': [],
                             'layout': {
                                 'title': ' Data Visualization'
                             }
