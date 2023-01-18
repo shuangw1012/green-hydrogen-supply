@@ -174,7 +174,8 @@ app.layout = html.Div(
                                  multi=False,
                                  searchable=True,
                                  placeholder='Select UG storage',
-                                 style={'width':'100%'})
+                                 style={'width':'100%'}),
+                            width={'size':3, 'offset':0}
                         )
                         ,
                     ],
