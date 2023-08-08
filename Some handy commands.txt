@@ -6,6 +6,9 @@ sudo rsync -r green-hydrogen-supply/ /srv/indust.re
 
 systemctl restart apache2
 
+to read text files: cat file_name
+
+
 
 
 
