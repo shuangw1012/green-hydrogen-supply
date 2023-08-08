@@ -30,10 +30,18 @@ locations = [{'label':'Burnie 1', 'value':'Burnie 1'},
              {'label':'Pilbara 2','value':'Pilbara 2'},
              {'label':'Pilbara 3','value':'Pilbara 3'},
              {'label':'Pilbara 4','value':'Pilbara 4'},
-             {'label':'Pinjara 1','value':'Pinjara 1'},
-             {'label':'Pinjara 2','value':'Pinjara 2'},
-             {'label':'Pinjara 3','value':'Pinjara 3'},
-             {'label':'Pinjara 4','value':'Pinjara 4'},
+             
+             # {'label':'Pinjara 1','value':'Pinjara 1'},
+             # {'label':'Pinjara 2','value':'Pinjara 2'},
+             # {'label':'Pinjara 3','value':'Pinjara 3'},
+             # {'label':'Pinjara 4','value':'Pinjara 4'},
+             
+             {'label':'South West 1','value':'Pinjara 1'},
+             {'label':'South West 2','value':'Pinjara 2'},
+             {'label':'South West 3','value':'Pinjara 3'},
+             {'label':'South West 4','value':'Pinjara 4'},
+             
+             
              {'label':'Upper Spencer Gulf 1','value':'Upper Spencer Gulf 1'},
              {'label':'Upper Spencer Gulf 2','value':'Upper Spencer Gulf 2'},
              {'label':'Upper Spencer Gulf 3','value':'Upper Spencer Gulf 3'},
