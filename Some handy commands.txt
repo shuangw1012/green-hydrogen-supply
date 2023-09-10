@@ -9,6 +9,27 @@ systemctl restart apache2
 to read text files: cat file_name
 
 
+### To inpect the log files for usage:
+
+# Become admin to get access to /var/log/apache2
+sudo su
+
+# Log files location
+/var/log/apache2
+
+# A Reports folder was created as
+/srv/indust.re/apache2/wwwroot/Reports#
+
+# Reports can be accessed via browser as:
+https://indust.re/Reports/
 
 
+# select those lines that contain ' ', then just print columns 1,4,5 
+zgrep ' ' indust.re-access.log.10.gz |awk '{print $1, $4, $5}'
 
+
+# Change the files in Reports to read/write access
+chmod 755 indust.re-access.log*
+
+# To get the history if commands
+history
