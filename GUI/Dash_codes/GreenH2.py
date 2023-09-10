@@ -128,10 +128,10 @@ app.layout = html.Div(
                 dbc.Row([
                     dbc.Label("Electrolyser efficiency:", width=3, style={'padding-right': 2}),
                     dbc.Col(dbc.Input(id="EL_ETA", type="number",
-                                       value=0.7,
-                                       min=0.5,
-                                       max=1.0,
-                                       step=0.1,
+                                       value=0.70,
+                                       min=0.50,
+                                       max=1.00,
+                                       step=0.01,
                                        style={}), width=2,
                     ),
                     
