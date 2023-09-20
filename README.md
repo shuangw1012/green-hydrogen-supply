@@ -1,3 +1,5 @@
+Forked by Shuang for RP2006
+
 This code was primarily written by Ahmad Mojiri, for the [HILTCRC](https://www.hiltcrc.com.au/) project HILT.RP2.001 "Green hydrogen supply modelling for industry".
 
 ## Running stand-alone via Jupyter
