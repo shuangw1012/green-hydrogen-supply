@@ -1,8 +1,12 @@
 % Use this editor as a MiniZinc scratch book
 int: N;
+int: n_PV;
+int: n_wind;
 
 set of int: tint = 1..N;     %number of intervals
 set of int: tsamp = 1..N+1;    %number of sample points
+set of int: N_PV = 1..n_PV;    %number of PV farms
+set of int: N_wind = 1..n_wind;    %number of wind farms
 
 float: DT;      %time difference between sample points (also, interval length) (s)
 float: EL_ETA;  %conversion efficiency of the electrolyser (kgH/s/kW)
@@ -21,19 +25,26 @@ float: RES_H_CAPA;       %virtual hydrogen reserve for reduced capacity factor (
 float: PV_REF;    %power capacity of the reference PV plant (kW)
 float: WIND_REF;    %power capacity of the reference wind plant (kW)
 
+
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
-array[tint] of var float: PV_REF_POUT;    %power output from the reference PV plant (kW)
-array[tint] of var float: WIND_REF_POUT;    %power output from the reference wind plant (kW)
+array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
+array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference wind plant (kW)
+
+array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
+array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
 
 % === VARIABLES ===
-var float: pv_max;    %PV plant rated power (kW)
 var float: wind_max;     %wind farm rated power (kW)
+var float: pv_max;     %wind farm rated power (kW)
 var float: el_max;     %electrolyser rated power (kW)
 var float: ug_storage_capa;    %capacity of hydrogen storage cavern (kg of H2)
 var float: pipe_storage_capa;  %capacity of hydrogen storage in the pipeline (kg of H2)
 var float: bat_e_capa;    %energy capacity of the electrochemical battery (kWh)
 var float: bat_p_max;    %power capacity of the electrochemical battery (kW)
+var float: C_trans;    %transmission cost
 
+array[N_PV] of var float: pv_max_array;    %an array of PV plant rated power values: nodes number of (kW)
+array[N_wind] of var float: wind_max_array;    %an array of PV plant rated power values: nodes number of (kW)
 array[tint] of var float: pv_pout;    %power out of PV plant (kW)
 array[tint] of var float: wind_pout;     %power out of wind farm (kW)
 array[tint] of var float: curtail_p;    %curtailed power (kW)
@@ -56,27 +67,27 @@ array[tsamp] of var float: bat_e;  %electrical energy stored in the battery (kWh
 
 var float: capex;
 
-capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max;
+capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
 
 %=== CONSTRAINTS ===
 constraint res_h_level[1] = RES_H_CAPA;
 constraint ug_storage_level[1] = ug_storage_level[N];
 constraint pipe_storage_level[1] = pipe_storage_level[N];
 constraint bat_e[1] = bat_e[N];
-
-constraint pv_max >= 0;
-constraint wind_max >= 0;
+constraint pv_max = sum(j in N_PV)(pv_max_array[j]);
+constraint wind_max = sum(j in N_wind)(wind_max_array[j]);
 constraint el_max >= 0;
 constraint ug_storage_capa >= 0;
 constraint ug_storage_capa <= UG_STORAGE_CAPA_MAX;
 constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
-
-
 constraint bat_e_capa >= 0;
+constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
 
-constraint forall(  i in tint  )(  pv_pout[i] = pv_max/PV_REF * PV_REF_POUT[i]  );
-constraint forall(  i in tint  )(  wind_pout[i] = wind_max/WIND_REF * WIND_REF_POUT[i]  );
+constraint forall(  j in N_PV  )(  pv_max_array[j] >0 );
+constraint forall(  j in N_wind  )(  wind_max_array[j] >0 );
 
+constraint forall(  i in tint  )(  pv_pout[i] = sum(j in N_PV)(pv_max_array[j]/PV_REF * PV_REF_POUT[j,i]) );
+constraint forall(  i in tint  )(  wind_pout[i] = sum(j in N_wind)(wind_max_array[j]/WIND_REF * WIND_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  pv_pout[i] + wind_pout[i] - curtail_p[i] - el_pin_pvwind[i] - bat_pin[i] = 0  );
 constraint forall(  i in tint  )(  curtail_p[i] >= 0  );
 
@@ -131,6 +142,8 @@ output  ["!"] ++
         ["CAPEX="] ++ [show(capex)] ++ [";"] ++
         ["pv_max="] ++ [show(pv_max)] ++ [";"] ++
         ["wind_max="] ++ [show(wind_max)] ++ [";"] ++
+        ["pv_max_array="] ++ [show(pv_max_array)] ++ [";"] ++
+        ["wind_max_array="] ++ [show(wind_max_array)] ++ [";"] ++
         ["el_max="] ++ [show(el_max)] ++ [";"] ++
         ["ug_storage_capa="] ++ [show(ug_storage_capa)] ++ [";"]++
         ["pipe_storage_capa="] ++ [show(pipe_storage_capa)] ++ [";"]++
@@ -154,5 +167,6 @@ output  ["!"] ++
         ["reserve_h_level="] ++ [show(res_h_level)] ++ [";"] ++
         ["bat_e="] ++ [show(bat_e)] ++ [";"] ++
         ["LOAD="] ++ [show(LOAD)] ++ [";"] ++
+        ["C_trans="] ++ [show(C_trans)] ++ [";"] ++
         ["!"];
 
