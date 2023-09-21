@@ -152,9 +152,9 @@ def Minizinc(simparams):
 
 def Optimise(load, cf, storage_type, simparams):
     simparams.update(CF = cf)
-    '''
-    PV_location = ['Burnie 1','Burnie 2']
-    Wind_location = ['Burnie 6']#,'Burnie 6']
+    
+    PV_location = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
+    Wind_location = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
     
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
@@ -180,11 +180,11 @@ def Optimise(load, cf, storage_type, simparams):
     
     
     # transmission cost
-    Coor_PV_x = np.array([352817,305252])
-    Coor_PV_y = np.array([5472428,5488707])
+    Coor_PV_x = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
+    Coor_PV_y = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
     
-    Coor_wind_x = np.array([338203,310079])
-    Coor_wind_y = np.array([5473899,5485449])
+    Coor_wind_x = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
+    Coor_wind_y = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
     
     Coor_elx, Coor_ely = 363640,5476256
     
@@ -194,7 +194,7 @@ def Optimise(load, cf, storage_type, simparams):
     for i in range(len(PV_location)):
         C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))/1000*5.496
     for i in range(len(Wind_location)):
-        C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i+1]-Coor_elx)**2+(Coor_wind_y[i+1]-Coor_ely)**2))/1000*5.496
+        C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))/1000*5.496
     C_PV_t = C_PV_t.tolist()
     C_wind_t = C_wind_t.tolist()
     
@@ -210,7 +210,7 @@ def Optimise(load, cf, storage_type, simparams):
                      PV_REF_POUT = PV_pv_ref_pout,
                      WIND_REF_POUT = Wind_ref_pout
                      )
-    '''
+    
     #print('Calculating for CF=', simparams['CF'])
     
     #results = Pulp(simparams)
@@ -228,10 +228,10 @@ def Optimise(load, cf, storage_type, simparams):
                 simparams['C_UG_STORAGE'] = Cost_hs(initial_ug_capa, storage_type)
                 #results = Pulp(simparams)
                 results = Minizinc(simparams)
-    '''
+    
     results.update(CF=simparams['CF'],
                    C_UG_STORAGE=simparams['C_UG_STORAGE'])
-    
+    '''
     return(results)
     
 

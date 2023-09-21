@@ -2,10 +2,10 @@
 int: N;
 int: n_PV;
 int: n_wind;
-int: n_project;    %project length
-int: n_el_m;    %Maintenance interval for electrolyser
-int: n_PV_m;    %Maintenance interval for PV facilities
-int: n_wind_m;    %Maintenance interval for wind facilities
+int: n_project = 20;    %project length
+int: n_el_m = 5;    %Maintenance interval for electrolyser
+int: n_PV_m = 10;    %Maintenance interval for PV facilities
+int: n_wind_m = 10;    %Maintenance interval for wind facilities
 
 set of int: tint = 1..N;     %number of intervals
 set of int: tsamp = 1..N+1;    %number of sample points
@@ -33,10 +33,10 @@ float: RES_H_CAPA;       %virtual hydrogen reserve for reduced capacity factor (
 float: PV_REF;    %power capacity of the reference PV plant (kW)
 float: WIND_REF;    %power capacity of the reference wind plant (kW)
 
-float: DIS_RATE;    %discount rate 8%
-float: C_EL_MO;    % O&M for electrolyzer ($/kw)
-float: C_PV_MO;    % O&M for electrolyzer ($/kw)
-float: C_WIND_MO;    % O&M for electrolyzer ($/kw)
+float: DIS_RATE = 0.08;    %discount rate 8%
+float: C_EL_MO = 37.40;    % O&M for electrolyzer ($/kw)
+float: C_PV_MO = 12.70;    % O&M for electrolyzer ($/kw)
+float: C_WIND_MO = 18.65;    % O&M for electrolyzer ($/kw)
 
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
@@ -45,7 +45,6 @@ array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference w
 
 array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
 array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
-
 
 
 % === VARIABLES ===
@@ -83,6 +82,7 @@ array[tsamp] of var float: bat_e;  %electrical energy stored in the battery (kWh
 var float: capex;
 var float: fom;
 var float: hy;
+var float: lcoh; % LCOH
 
 capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
 
@@ -90,9 +90,9 @@ fom = (sum(year_el in N_el_m) (C_EL_MO / pow(1.0 + DIS_RATE, year_el)) * el_max
         + sum(year_PV in N_PV_m) (C_PV_MO/pow(1.0 + DIS_RATE, year_PV)) * pv_max 
         + sum(year_wind in N_wind_m) (C_WIND_MO/pow(1.0 + DIS_RATE, year_wind)) * wind_max);
 
-hy = sum(year_project in N_project) (LOAD[1] *24*365 / pow(1.0 + DIS_RATE, year_project)); %discounted hydrogen production
+hy = sum(year_project in N_project) (LOAD[1] *24*365*3600 / pow(1.0 + DIS_RATE, year_project)); %discounted hydrogen production
 
-lcoh = capex + fom/hy;
+lcoh = (capex + fom)/hy;
 
 %=== CONSTRAINTS ===
 constraint res_h_level[1] = RES_H_CAPA;
@@ -160,7 +160,7 @@ constraint forall(  i in tint  )(  res_hout[i] <= LOAD[i]  );
 
 
 
-solve minimize loch;
+solve minimize lcoh;
 
 output  ["!"] ++
         ["N="] ++ [show(N)] ++ [";"] ++
@@ -193,5 +193,8 @@ output  ["!"] ++
         ["bat_e="] ++ [show(bat_e)] ++ [";"] ++
         ["LOAD="] ++ [show(LOAD)] ++ [";"] ++
         ["C_trans="] ++ [show(C_trans)] ++ [";"] ++
+        ["lcoh="] ++ [show(lcoh)] ++ [";"] ++
+        ["fom="] ++ [show(fom)] ++ [";"] ++
+        ["hy="] ++ [show(hy)] ++ [";"] ++
         ["!"];
 

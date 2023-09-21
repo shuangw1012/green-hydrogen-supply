@@ -130,7 +130,7 @@ def optimisation():
         print (feedback)
         output.append(feedback)
     
-    RESULTS = pd.DataFrame(columns=['cf','capex[USD]','pv_capacity[kW]',
+    RESULTS = pd.DataFrame(columns=['cf','capex[USD]','lcoh[USD/kg]','fom[USD]','hy[kg]','pv_capacity[kW]',
                                     'wind_capacity[kW]','pv_capacity_array[kW]',
                                     'wind_capacity_array[kW]','el_capacity[kW]',
                                     'ug_capcaity[kgH2]','pipe_storage_capacity[kgH2]',
@@ -143,6 +143,9 @@ def optimisation():
         results = output[i]
         RESULTS = RESULTS.append({'cf': results['CF'],
                             'capex[USD]': results['CAPEX'][0],
+                            'lcoh[USD/kg]': results['lcoh'][0],
+                            'fom[USD]':results['fom'][0],
+                            'hy[kg]':results['hy'][0],
                             'pv_capacity[kW]': results['pv_max'][0],
                             'wind_capacity[kW]': results['wind_max'][0],
                             'pv_capacity_array[kW]': results['pv_max_array'],
