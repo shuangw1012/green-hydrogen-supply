@@ -2,11 +2,19 @@
 int: N;
 int: n_PV;
 int: n_wind;
+int: n_project;    %project length
+int: n_el_m;    %Maintenance interval for electrolyser
+int: n_PV_m;    %Maintenance interval for PV facilities
+int: n_wind_m;    %Maintenance interval for wind facilities
 
 set of int: tint = 1..N;     %number of intervals
 set of int: tsamp = 1..N+1;    %number of sample points
 set of int: N_PV = 1..n_PV;    %number of PV farms
 set of int: N_wind = 1..n_wind;    %number of wind farms
+set of int: N_project = 1..n_project;    %number of project year 
+set of int: N_el_m = {year_el | year_el in N_project where year_el mod n_el_m = 0}; % set of years to maintain the electroylyser
+set of int: N_PV_m = {year_PV | year_PV in N_project where year_PV mod n_PV_m = 0}; % set years to maintain the PV facilities
+set of int: N_wind_m = {year_wind | year_wind in N_project where year_wind mod n_wind_m = 0}; % set years to maintain the PV facilities
 
 float: DT;      %time difference between sample points (also, interval length) (s)
 float: EL_ETA;  %conversion efficiency of the electrolyser (kgH/s/kW)
@@ -25,6 +33,11 @@ float: RES_H_CAPA;       %virtual hydrogen reserve for reduced capacity factor (
 float: PV_REF;    %power capacity of the reference PV plant (kW)
 float: WIND_REF;    %power capacity of the reference wind plant (kW)
 
+float: DIS_RATE;    %discount rate 8%
+float: C_EL_MO;    % O&M for electrolyzer ($/kw)
+float: C_PV_MO;    % O&M for electrolyzer ($/kw)
+float: C_WIND_MO;    % O&M for electrolyzer ($/kw)
+
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
 array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
@@ -32,6 +45,8 @@ array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference w
 
 array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
 array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
+
+
 
 % === VARIABLES ===
 var float: wind_max;     %wind farm rated power (kW)
@@ -66,8 +81,18 @@ array[tsamp] of var float: bat_e;  %electrical energy stored in the battery (kWh
 
 
 var float: capex;
+var float: fom;
+var float: hy;
 
 capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
+
+fom = (sum(year_el in N_el_m) (C_EL_MO / pow(1.0 + DIS_RATE, year_el)) * el_max 
+        + sum(year_PV in N_PV_m) (C_PV_MO/pow(1.0 + DIS_RATE, year_PV)) * pv_max 
+        + sum(year_wind in N_wind_m) (C_WIND_MO/pow(1.0 + DIS_RATE, year_wind)) * wind_max);
+
+hy = sum(year_project in N_project) (LOAD[1] *24*365 / pow(1.0 + DIS_RATE, year_project)); %discounted hydrogen production
+
+lcoh = capex + fom/hy;
 
 %=== CONSTRAINTS ===
 constraint res_h_level[1] = RES_H_CAPA;
@@ -135,7 +160,7 @@ constraint forall(  i in tint  )(  res_hout[i] <= LOAD[i]  );
 
 
 
-solve minimize capex;
+solve minimize loch;
 
 output  ["!"] ++
         ["N="] ++ [show(N)] ++ [";"] ++
