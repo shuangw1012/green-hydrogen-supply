@@ -122,11 +122,11 @@ def optimisation():
     pool.join()
     print('Completed!')
     '''
-    CF_group = [50,60]
+    CF_group = [80]
     output = []
-    for i in range(2):
+    for i in range(1):
         CF = CF_group[i]
-        feedback = Optimise(load=5, cf=CF, storage_type='Salt Cavern', simparams=simparams)
+        feedback = Optimise(load=2.115, cf=CF, storage_type='Salt Cavern', simparams=simparams)
         print (feedback)
         output.append(feedback)
     

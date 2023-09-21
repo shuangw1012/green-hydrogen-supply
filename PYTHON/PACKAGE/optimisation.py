@@ -152,8 +152,10 @@ def Minizinc(simparams):
 
 def Optimise(load, cf, storage_type, simparams):
     simparams.update(CF = cf)
-
+    '''
     PV_location = ['Burnie 1','Burnie 2']
+    Wind_location = ['Burnie 6']#,'Burnie 6']
+    
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
     for loc in PV_location:
@@ -165,7 +167,7 @@ def Optimise(load, cf, storage_type, simparams):
         PV_pv_ref_pout = np.append(PV_pv_ref_pout,pv_ref_pout)
     PV_pv_ref_pout = PV_pv_ref_pout.reshape(len(PV_location),8760)
     
-    Wind_location = ['Burnie 6']#,'Burnie 6']
+    
     for loc2 in Wind_location:
         #Update the weather data files
         WindSource_windlab(loc2)
@@ -190,9 +192,9 @@ def Optimise(load, cf, storage_type, simparams):
     C_PV_t = np.zeros(len(PV_location))
     C_wind_t = np.zeros(len(Wind_location))
     for i in range(len(PV_location)):
-        C_PV_t[i] = np.sqrt((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2)/1000*5.496
+        C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))/1000*5.496
     for i in range(len(Wind_location)):
-        C_wind_t[i] = np.sqrt((Coor_wind_x[i+1]-Coor_elx)**2+(Coor_wind_y[i+1]-Coor_ely)**2)/1000*5.496
+        C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i+1]-Coor_elx)**2+(Coor_wind_y[i+1]-Coor_ely)**2))/1000*5.496
     C_PV_t = C_PV_t.tolist()
     C_wind_t = C_wind_t.tolist()
     
@@ -208,11 +210,12 @@ def Optimise(load, cf, storage_type, simparams):
                      PV_REF_POUT = PV_pv_ref_pout,
                      WIND_REF_POUT = Wind_ref_pout
                      )
+    '''
     #print('Calculating for CF=', simparams['CF'])
     
     #results = Pulp(simparams)
     
-    make_dzn_file(**simparams)
+    #make_dzn_file(**simparams)
     results = Minizinc(simparams)
     
     '''
