@@ -8,8 +8,8 @@ from projdirs import optdir
 import numpy as np
 from PACKAGE.component_model import pv_gen, wind_gen,SolarResource, WindSource,WindSource_windlab
 import os
-from pulp import LpVariable,LpProblem,LpMinimize,LpStatus
-import pulp
+#from pulp import LpVariable,LpProblem,LpMinimize,LpStatus
+#import pulp
 
 def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_PV, C_WIND, C_EL, C_UG_STORAGE,UG_STORAGE_CAPA_MAX,
@@ -150,12 +150,10 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location):
     simparams.update(CF = cf)
-    
-    PV_location = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
-    Wind_location = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
-    
+    print (PV_location)
+    print (Wind_location)
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
     for loc in PV_location:
@@ -215,7 +213,7 @@ def Optimise(load, cf, storage_type, simparams):
     
     #results = Pulp(simparams)
     
-    #make_dzn_file(**simparams)
+    make_dzn_file(**simparams)
     results = Minizinc(simparams)
     
     '''
@@ -232,7 +230,7 @@ def Optimise(load, cf, storage_type, simparams):
     results.update(CF=simparams['CF'],
                    C_UG_STORAGE=simparams['C_UG_STORAGE'])
     '''
-    return(results)
+    return(results,simparams)
     
 
 def Pulp(simparams):   

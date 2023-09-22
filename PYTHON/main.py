@@ -124,11 +124,22 @@ def optimisation():
     '''
     CF_group = [80]
     output = []
+    Simparams = []
+    PV_location_g = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
+    Wind_location_g = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
     for i in range(1):
         CF = CF_group[i]
-        feedback = Optimise(load=2.115, cf=CF, storage_type='Salt Cavern', simparams=simparams)
-        print (feedback)
-        output.append(feedback)
+        for j in range(len(PV_location_g),len(PV_location_g)+1):
+            if j < len(PV_location_g):
+                PV_location = [PV_location_g[j]]
+                Wind_location = [Wind_location_g[j]]
+            if j == len(PV_location_g):
+                PV_location = PV_location_g
+                Wind_location = Wind_location_g
+            feedback,simparams = Optimise(load=2.115, cf=CF, storage_type='Salt Cavern', simparams=simparams,PV_location=PV_location,Wind_location=Wind_location)
+            print (j,feedback)
+            output.append(feedback)
+            Simparams.append(simparams)
     
     RESULTS = pd.DataFrame(columns=['cf','capex[USD]','lcoh[USD/kg]','fom[USD]','hy[kg]','pv_capacity[kW]',
                                     'wind_capacity[kW]','pv_capacity_array[kW]',
@@ -141,7 +152,8 @@ def optimisation():
     
     for i in range(len(output)):
         results = output[i]
-        RESULTS = RESULTS.append({'cf': results['CF'],
+        simparams = Simparams[i]
+        RESULTS = RESULTS.append({'cf': simparams['CF'],
                             'capex[USD]': results['CAPEX'][0],
                             'lcoh[USD/kg]': results['lcoh'][0],
                             'fom[USD]':results['fom'][0],
@@ -158,7 +170,7 @@ def optimisation():
                             'pv_cost[USD]': results['pv_max'][0]*simparams['C_PV'],
                             'wind_cost[USD]': results['wind_max'][0]*simparams['C_WIND'],
                             'el_cost[USD]': results['el_max'][0]*simparams['C_EL'],
-                            'ug_storage_cost[USD]': results['ug_storage_capa'][0]*results['C_UG_STORAGE'],
+                            'ug_storage_cost[USD]': results['ug_storage_capa'][0]*simparams['C_UG_STORAGE'],
                             'pipe_storage_cost[USD]':results['pipe_storage_capa'][0]*simparams['C_PIPE_STORAGE'],
                             'bat_cost[USD]': results['bat_p_max'][0]*simparams['C_BAT_ENERGY'],
                             'load[kg/s]':results['LOAD'][0],
@@ -304,8 +316,8 @@ if __name__=='__main__':
         print 
         print (loc)
         location = loc+'_MERRA2'
-        update_resource_data(loc)
-        solar_output(loc)
+        update_resource_data(location)
+        solar_output(location)
     '''
     #plot(location)
     #plot_yearly()
