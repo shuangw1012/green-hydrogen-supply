@@ -8,8 +8,7 @@ from projdirs import optdir
 import numpy as np
 from PACKAGE.component_model import pv_gen, wind_gen,SolarResource, WindSource,WindSource_windlab
 import os
-#from pulp import LpVariable,LpProblem,LpMinimize,LpStatus
-#import pulp
+
 
 def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_PV, C_WIND, C_EL, C_UG_STORAGE,UG_STORAGE_CAPA_MAX,
@@ -150,10 +149,12 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y):
     simparams.update(CF = cf)
     print (PV_location)
     print (Wind_location)
+    print (Coor_PV_x,Coor_PV_y)
+    print (Coor_wind_x,Coor_wind_y)
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
     for loc in PV_location:
@@ -178,12 +179,6 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location):
     
     
     # transmission cost
-    Coor_PV_x = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
-    Coor_PV_y = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
-    
-    Coor_wind_x = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
-    Coor_wind_y = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
-    
     Coor_elx, Coor_ely = 363640,5476256
     
     # unit capacity cost
@@ -216,7 +211,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location):
     make_dzn_file(**simparams)
     results = Minizinc(simparams)
     
-    '''
+    
     if simparams['UG_STORAGE_CAPA_MAX']>0:
         new_ug_capa = results['ug_storage_capa'][0]/1e3
         if np.mean([new_ug_capa,initial_ug_capa]) > 0:
@@ -229,11 +224,13 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location):
     
     results.update(CF=simparams['CF'],
                    C_UG_STORAGE=simparams['C_UG_STORAGE'])
-    '''
+    
     return(results,simparams)
     
 
 def Pulp(simparams):   
+    from pulp import LpVariable,LpProblem,LpMinimize,LpStatus
+    import pulp
     # pass on the parameters
     N = len(simparams['PV_REF_POUT']) # number of hours
     time_steps = range(0, N)

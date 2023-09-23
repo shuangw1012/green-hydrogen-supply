@@ -84,17 +84,14 @@ var float: fom;
 var float: hy;
 var float: lcoh; % LCOH
 
-capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
-
-fom = (sum(year_el in N_el_m) (C_EL_MO / pow(1.0 + DIS_RATE, year_el)) * el_max 
-        + sum(year_PV in N_PV_m) (C_PV_MO/pow(1.0 + DIS_RATE, year_PV)) * pv_max 
-        + sum(year_wind in N_wind_m) (C_WIND_MO/pow(1.0 + DIS_RATE, year_wind)) * wind_max);
-
-hy = sum(year_project in N_project) (LOAD[1] *24*365*3600 / pow(1.0 + DIS_RATE, year_project)); %discounted hydrogen production
-
 lcoh = (capex + fom)/hy;
 
 %=== CONSTRAINTS ===
+constraint capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
+constraint fom = (sum(year_el in N_el_m) (C_EL_MO / pow(1.0 + DIS_RATE, year_el)) * el_max 
+        + sum(year_PV in N_PV_m) (C_PV_MO/pow(1.0 + DIS_RATE, year_PV)) * pv_max 
+        + sum(year_wind in N_wind_m) (C_WIND_MO/pow(1.0 + DIS_RATE, year_wind)) * wind_max);
+constraint hy = sum(year_project in N_project) (LOAD[1] *24*365*3600 / pow(1.0 + DIS_RATE, year_project)); %discounted hydrogen production
 constraint res_h_level[1] = RES_H_CAPA;
 constraint ug_storage_level[1] = ug_storage_level[N];
 constraint pipe_storage_level[1] = pipe_storage_level[N];
@@ -108,8 +105,8 @@ constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
 constraint bat_e_capa >= 0;
 constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
 
-constraint forall(  j in N_PV  )(  pv_max_array[j] >0 );
-constraint forall(  j in N_wind  )(  wind_max_array[j] >0 );
+constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
+constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
 
 constraint forall(  i in tint  )(  pv_pout[i] = sum(j in N_PV)(pv_max_array[j]/PV_REF * PV_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  wind_pout[i] = sum(j in N_wind)(wind_max_array[j]/WIND_REF * WIND_REF_POUT[j,i]) );
@@ -160,7 +157,7 @@ constraint forall(  i in tint  )(  res_hout[i] <= LOAD[i]  );
 
 
 
-solve minimize lcoh;
+solve minimize capex;
 
 output  ["!"] ++
         ["N="] ++ [show(N)] ++ [";"] ++

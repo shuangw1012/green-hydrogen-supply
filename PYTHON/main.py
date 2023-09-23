@@ -127,16 +127,33 @@ def optimisation():
     Simparams = []
     PV_location_g = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
     Wind_location_g = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
+    
+    Coor_PV_x_g = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
+    Coor_PV_y_g = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
+    
+    Coor_wind_x_g = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
+    Coor_wind_y_g = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
+    
     for i in range(1):
         CF = CF_group[i]
-        for j in range(len(PV_location_g),len(PV_location_g)+1):
+        
+        for j in range(len(PV_location_g)+1):
             if j < len(PV_location_g):
                 PV_location = [PV_location_g[j]]
                 Wind_location = [Wind_location_g[j]]
+                Coor_PV_x = [Coor_PV_x_g[j]]
+                Coor_PV_y = [Coor_PV_y_g[j]]
+                Coor_wind_x = [Coor_wind_x_g[j]]
+                Coor_wind_y = [Coor_wind_y_g[j]]
             if j == len(PV_location_g):
                 PV_location = PV_location_g
                 Wind_location = Wind_location_g
-            feedback,simparams = Optimise(load=2.115, cf=CF, storage_type='Salt Cavern', simparams=simparams,PV_location=PV_location,Wind_location=Wind_location)
+                Coor_PV_x = Coor_PV_x_g
+                Coor_PV_y = Coor_PV_y_g
+                Coor_wind_x = Coor_wind_x_g
+                Coor_wind_y = Coor_wind_y_g
+            feedback,simparams = Optimise(2.115, CF, 'Salt Cavern', simparams,PV_location,Wind_location,
+                                          Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y)
             print (j,feedback)
             output.append(feedback)
             Simparams.append(simparams)
