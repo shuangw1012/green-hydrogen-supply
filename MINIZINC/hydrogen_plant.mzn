@@ -2,19 +2,13 @@
 int: N;
 int: n_PV;
 int: n_wind;
-int: n_project = 20;    %project length
-int: n_el_m = 5;    %Maintenance interval for electrolyser
-int: n_PV_m = 10;    %Maintenance interval for PV facilities
-int: n_wind_m = 10;    %Maintenance interval for wind facilities
+int: n_project;    %project length
 
 set of int: tint = 1..N;     %number of intervals
 set of int: tsamp = 1..N+1;    %number of sample points
 set of int: N_PV = 1..n_PV;    %number of PV farms
 set of int: N_wind = 1..n_wind;    %number of wind farms
 set of int: N_project = 1..n_project;    %number of project year 
-set of int: N_el_m = {year_el | year_el in N_project where year_el mod n_el_m = 0}; % set of years to maintain the electroylyser
-set of int: N_PV_m = {year_PV | year_PV in N_project where year_PV mod n_PV_m = 0}; % set years to maintain the PV facilities
-set of int: N_wind_m = {year_wind | year_wind in N_project where year_wind mod n_wind_m = 0}; % set years to maintain the PV facilities
 
 float: DT;      %time difference between sample points (also, interval length) (s)
 float: EL_ETA;  %conversion efficiency of the electrolyser (kgH/s/kW)
@@ -33,11 +27,13 @@ float: RES_H_CAPA;       %virtual hydrogen reserve for reduced capacity factor (
 float: PV_REF;    %power capacity of the reference PV plant (kW)
 float: WIND_REF;    %power capacity of the reference wind plant (kW)
 
-float: DIS_RATE = 0.08;    %discount rate 8%
-float: C_EL_MO = 37.40;    % O&M for electrolyzer ($/kw)
-float: C_PV_MO = 12.70;    % O&M for electrolyzer ($/kw)
-float: C_WIND_MO = 18.65;    % O&M for electrolyzer ($/kw)
-
+float: DIS_RATE;    %discount rate 8%
+float: OM_EL;    % O&M for electrolyzer ($/kw)
+float: OM_PV;    % O&M for PV ($/kw)
+float: OM_WIND;    % O&M for wind ($/kw)
+float: OM_UG;     % O&M for underground hydrogen storage
+float: crf; %capital recovery factor
+float: H_total; %annual hydrogen generation kg/year
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
 array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
@@ -80,18 +76,22 @@ array[tsamp] of var float: bat_e;  %electrical energy stored in the battery (kWh
 
 
 var float: capex;
-var float: fom;
-var float: hy;
-var float: lcoh; % LCOH
+var float: lcoh; % LCOH in USD/kg
+var float: FOM_PV; %USD/kW.year
+var float: FOM_WIND; %USD/kW.year
+var float: FOM_EL; %USD/kW.year
+var float: FOM_UG; %USD/kg.year
+var float: OF;
 
-lcoh = (capex + fom)/hy;
+OF = (C_PV + OM_PV/crf) * pv_max + (C_WIND + OM_WIND/crf) * wind_max + (C_EL + OM_EL/crf) * el_max + (C_UG_STORAGE + OM_UG/crf) * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
 
 %=== CONSTRAINTS ===
 constraint capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
-constraint fom = (sum(year_el in N_el_m) (C_EL_MO / pow(1.0 + DIS_RATE, year_el)) * el_max 
-        + sum(year_PV in N_PV_m) (C_PV_MO/pow(1.0 + DIS_RATE, year_PV)) * pv_max 
-        + sum(year_wind in N_wind_m) (C_WIND_MO/pow(1.0 + DIS_RATE, year_wind)) * wind_max);
-constraint hy = sum(year_project in N_project) (LOAD[1] *24*365*3600 / pow(1.0 + DIS_RATE, year_project)); %discounted hydrogen production
+constraint FOM_PV = pv_max * OM_PV; 
+constraint FOM_WIND = wind_max * OM_WIND; 
+constraint FOM_EL = el_max * OM_EL; 
+constraint FOM_UG = ug_storage_capa * OM_UG;
+constraint lcoh = (crf * capex + FOM_PV + FOM_WIND + FOM_EL + FOM_UG)/H_total;
 constraint res_h_level[1] = RES_H_CAPA;
 constraint ug_storage_level[1] = ug_storage_level[N];
 constraint pipe_storage_level[1] = pipe_storage_level[N];
@@ -155,9 +155,7 @@ constraint forall(  i in tint  )(  res_h_level[i+1] = res_h_level[i] - res_hout[
 constraint forall(  i in tint  )(  res_hout[i] >= 0  );
 constraint forall(  i in tint  )(  res_hout[i] <= LOAD[i]  );
 
-
-
-solve minimize capex;
+solve minimize OF;
 
 output  ["!"] ++
         ["N="] ++ [show(N)] ++ [";"] ++
@@ -191,7 +189,10 @@ output  ["!"] ++
         ["LOAD="] ++ [show(LOAD)] ++ [";"] ++
         ["C_trans="] ++ [show(C_trans)] ++ [";"] ++
         ["lcoh="] ++ [show(lcoh)] ++ [";"] ++
-        ["fom="] ++ [show(fom)] ++ [";"] ++
-        ["hy="] ++ [show(hy)] ++ [";"] ++
+        ["FOM_PV="] ++ [show(FOM_PV)] ++ [";"] ++
+        ["FOM_WIND="] ++ [show(FOM_WIND)] ++ [";"] ++
+        ["FOM_EL="] ++ [show(FOM_EL)] ++ [";"] ++
+        ["FOM_UG="] ++ [show(FOM_UG)] ++ [";"] ++
+        ["H_total="] ++ [show(H_total)] ++ [";"] ++
         ["!"];
 

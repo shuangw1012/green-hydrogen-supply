@@ -48,6 +48,11 @@ def optimisation():
                      PIPE_STORAGE_CAPA_MIN = 0, #minimum size of linepacking (kg of H2)
                      C_BAT_ENERGY = 196,        #[USD/kWh] unit cost of battery energy storage
                      C_BAT_POWER = 405,        #[USD/kW] unit cost of battery power capacpity
+                     OM_EL = 37.40,    # O&M for electrolyzer ($/kw)
+                     OM_PV = 12.70,    # O&M for PV ($/kw)
+                     OM_WIND = 18.65,    # O&M for wind ($/kw)
+                     OM_UG = 1.03,        # O&M for underground storage ($/kg)
+                     DIS_RATE = 0.06        #discount rate 8%
                      )
     
     # # for 2030
@@ -108,20 +113,6 @@ def optimisation():
         
     #Location = ['Burnie 1','Burnie 2']#,'Burnie 3','Burnie 4']
     #output = Optimise(load=5, cf=80, storage_type='Salt Cavern', simparams=simparams,Location=Location)
-    '''
-    pool = mp.Pool(mp.cpu_count()-2)
-    print('Started!')
-    output = [pool.apply_async(Optimise,
-                               args=(load, CF, storage_type, params))
-              for load in [2.115]
-              for CF in [80]#[50,60,70,80,90,100]
-              for storage_type in ['Salt Cavern'] 
-              for params in [simparams]]
-
-    pool.close()
-    pool.join()
-    print('Completed!')
-    '''
     CF_group = [100]
     output = []
     Simparams = []
@@ -137,7 +128,7 @@ def optimisation():
     for i in range(1):
         CF = CF_group[i]
         
-        for j in range(len(PV_location_g)+1):
+        for j in range(1):#len(PV_location_g)+1):
             if j < len(PV_location_g):
                 PV_location = [PV_location_g[j]]
                 Wind_location = [Wind_location_g[j]]
@@ -152,46 +143,11 @@ def optimisation():
                 Coor_PV_y = Coor_PV_y_g
                 Coor_wind_x = Coor_wind_x_g
                 Coor_wind_y = Coor_wind_y_g
+            print ('Started CF: %s Case: %s'%(CF,PV_location))
             feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
                                           Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y)
-            print (j,feedback)
             output.append(feedback)
             Simparams.append(simparams)
-    
-    '''RESULTS = pd.DataFrame(columns=['cf','capex[USD]','lcoh[USD/kg]','fom[USD]','hy[kg]','pv_capacity[kW]',
-                                    'wind_capacity[kW]','pv_capacity_array[kW]',
-                                    'wind_capacity_array[kW]','el_capacity[kW]',
-                                    'ug_capcaity[kgH2]','pipe_storage_capacity[kgH2]',
-                                    'bat_e_capacity[kWh]','bat_p_capacity[kW]',
-                                    'pv_cost[USD]', 'wind_cost[USD]','el_cost[USD]',
-                                    'ug_storage_cost[USD]','pipe_storage_cost[USD]',
-                                    'bat_cost[USD]', 'load[kg/s]','C_trans[USD]'])
-    
-    for i in range(len(output)):
-        results = output[i]
-        simparams = Simparams[i]
-        RESULTS = RESULTS.append({'cf': simparams['CF'],
-                            'capex[USD]': results['CAPEX'][0],
-                            'lcoh[USD/kg]': results['lcoh'][0],
-                            'fom[USD]':results['fom'][0],
-                            'hy[kg]':results['hy'][0],
-                            'pv_capacity[kW]': results['pv_max'][0],
-                            'wind_capacity[kW]': results['wind_max'][0],
-                            'pv_capacity_array[kW]': results['pv_max_array'],
-                            'wind_capacity_array[kW]': results['wind_max_array'],
-                            'el_capacity[kW]': results['el_max'][0],
-                            'ug_capcaity[kgH2]': results['ug_storage_capa'][0],
-                            'pipe_storage_capacity[kgH2]': results['pipe_storage_capa'][0],
-                            'bat_e_capacity[kWh]': results['bat_e_capa'][0],
-                            'bat_p_capacity[kW]': results['bat_p_max'][0],
-                            'pv_cost[USD]': results['pv_max'][0]*simparams['C_PV'],
-                            'wind_cost[USD]': results['wind_max'][0]*simparams['C_WIND'],
-                            'el_cost[USD]': results['el_max'][0]*simparams['C_EL'],
-                            'ug_storage_cost[USD]': results['ug_storage_capa'][0]*simparams['C_UG_STORAGE'],
-                            'pipe_storage_cost[USD]':results['pipe_storage_capa'][0]*simparams['C_PIPE_STORAGE'],
-                            'bat_cost[USD]': results['bat_p_max'][0]*simparams['C_BAT_ENERGY'],
-                            'load[kg/s]':results['LOAD'][0],
-                            'C_trans[USD]':results['C_trans'][0]}, ignore_index=True)'''
     
     data_list = []
 
@@ -203,8 +159,11 @@ def optimisation():
             'cf': simparams['CF'],
             'capex[USD]': results['CAPEX'][0],
             'lcoh[USD/kg]': results['lcoh'][0],
-            'fom[USD]': results['fom'][0],
-            'hy[kg]': results['hy'][0],
+            'FOM_PV[USD]':results['FOM_PV'][0],
+            'FOM_WIND[USD]':results['FOM_WIND'][0],
+            'FOM_EL[USD]':results['FOM_EL'][0],
+            'FOM_UG[USD]':results['FOM_UG'][0],
+            'H_total[kg]':results['H_total'][0],
             'pv_capacity[kW]': results['pv_max'][0],
             'wind_capacity[kW]': results['wind_max'][0],
             'pv_capacity_array[kW]': results['pv_max_array'],

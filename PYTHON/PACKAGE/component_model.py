@@ -40,7 +40,7 @@ def pv_gen(capacity):
     # module.SystemDesign.system_capacity = capacity
     pv.execute()
     output = np.array(pv.Outputs.gen)
-    print ('PV_gen finishes')
+    #print ('PV_gen finishes')
     return(output.tolist())
 
 #################################################################
@@ -72,7 +72,7 @@ def wind_gen(hub_height=150):
     wind.Turbine.wind_turbine_hub_ht = hub_height
     wind.execute()
     output = np.array(wind.Outputs.gen)
-    print ('wind_gen finishes')
+    #print ('wind_gen finishes')
     return(output.tolist())
 
 #################################################################
@@ -129,7 +129,7 @@ def SolarResource(Location):
     text_file = open(path + os.sep + "SolarSource.csv", "w")
     text_file.write(data_text)
     text_file.close()
-    print('Solar data file was generated from Solcast database!')
+    #print('Solar data file was generated from Solcast database!')
 
  #################################################################
 def WindSource(Location):
