@@ -52,7 +52,7 @@ def optimisation():
                      OM_PV = 12.70,    # O&M for PV ($/kw)
                      OM_WIND = 18.65,    # O&M for wind ($/kw)
                      OM_UG = 1.03,        # O&M for underground storage ($/kg)
-                     DIS_RATE = 0.06        #discount rate 8%
+                     DIS_RATE = 0.06        #discount rate 6%
                      )
     
     # # for 2030
@@ -128,7 +128,7 @@ def optimisation():
     for i in range(1):
         CF = CF_group[i]
         
-        for j in range(1):#len(PV_location_g)+1):
+        for j in range(len(PV_location_g)+1):
             if j < len(PV_location_g):
                 PV_location = [PV_location_g[j]]
                 Wind_location = [Wind_location_g[j]]
