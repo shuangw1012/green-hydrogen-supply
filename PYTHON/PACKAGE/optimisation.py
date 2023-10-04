@@ -239,6 +239,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Coor_PV
                 print('Refining storage cost; new storage capa=', initial_ug_capa)
                 simparams['C_UG_STORAGE'] = Cost_hs(initial_ug_capa, storage_type)
                 #results = Pulp(simparams)
+                make_dzn_file(**simparams)
                 results = Minizinc(simparams)
     
     results.update(CF=simparams['CF'],

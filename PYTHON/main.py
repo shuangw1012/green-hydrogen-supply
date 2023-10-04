@@ -128,7 +128,7 @@ def optimisation():
     for i in range(1):
         CF = CF_group[i]
         
-        for j in range(len(PV_location_g)+1):
+        for j in range(1):#len(PV_location_g)+1):
             if j < len(PV_location_g):
                 PV_location = [PV_location_g[j]]
                 Wind_location = [Wind_location_g[j]]
