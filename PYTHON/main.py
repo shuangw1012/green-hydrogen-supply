@@ -15,6 +15,7 @@ from PACKAGE.component_model import pv_gen, wind_gen, SolarResource, WindSource,
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
 fontsize = 14
+import time
 
 def update_resource_data(Location):
     #Choose the location
@@ -116,23 +117,27 @@ def optimisation():
     CF_group = [100]
     output = []
     Simparams = []
-    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g = load_txt()
+    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer = load_txt()
     
     # we set Wind locations the same as PV for now
     Wind_location_g = PV_location_g
     Coor_wind_x_g = Coor_PV_x_g
     Coor_wind_y_g = Coor_PV_y_g
-
-    for i in range(1):
-        CF = CF_group[i]
-        
+    
+    Pipe_buffer_g = np.array([])
+    for i in range(len(PV_location_g)):
+        if Pipe_buffer[i] == 'True':
+            Pipe_buffer_g = np.append(Pipe_buffer_g,PV_location_g[i])
+    
+    for CF in CF_group:        
         # adding a loop for different El locations
-        for e in range(len(Coor_elx_x_g)):
+        for e in range(len(Coor_elx_x_g)-1,len(Coor_elx_x_g)):
             Coor_elx = Coor_elx_x_g[e]
             Coor_ely = Coor_elx_y_g[e]
             
-            for j in range(1):#len(PV_location_g)+1):
+            for j in range(len(PV_location_g)+1):
                 if j < len(PV_location_g):
+                    continue
                     PV_location = [PV_location_g[j]]
                     Wind_location = [Wind_location_g[j]]
                     Coor_PV_x = [Coor_PV_x_g[j]]
@@ -146,9 +151,31 @@ def optimisation():
                     Coor_PV_y = Coor_PV_y_g
                     Coor_wind_x = Coor_wind_x_g
                     Coor_wind_y = Coor_wind_y_g
-                print ('Started CF: %s Case: %s'%(CF,PV_location))
+                
+                print ('Started CF: %s Case: %s %s'%(CF,PV_location,El_location_g[e]))
+                
+                # transmission cost unit capacity
+                C_PV_t = np.zeros(len(PV_location))
+                C_wind_t = np.zeros(len(Wind_location))
+                for i in range(len(PV_location)):
+                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))/1000*5.496
+                for i in range(len(Wind_location)):
+                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))/1000*5.496
+                C_PV_t = C_PV_t.tolist()
+                C_wind_t = C_wind_t.tolist()
+                       
+                C_pipe = np.zeros(len(PV_location))
+                for i in range(len(PV_location)):
+                    if PV_location[i] in Pipe_buffer_g:
+                        #print ('buffer', PV_location[i])
+                        C_pipe[i] = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*787*150*0.15 # USD
+                    else:
+                        #print ('not buffer', PV_location[i])
+                        C_pipe[i] = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*787*150 # USD
+                #C_pipe                
                 feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
-                                              Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y,Coor_elx,Coor_ely)
+                                              C_PV_t,C_wind_t)
+                
                 feedback['El']=El_location_g[e] # add el location to the results
                 output.append(feedback)
                 Simparams.append(simparams)
@@ -208,6 +235,7 @@ def load_txt():
     El_location_g = np.array([])
     Coor_elx_x_g = np.array([])
     Coor_elx_y_g = np.array([])
+    Pipe_buffer = np.array([])
     inputFileName = os.getcwd()+'/input.txt'
     f = open( inputFileName )    
     lines = f.readlines()
@@ -221,13 +249,20 @@ def load_txt():
             PV_location_g = np.append(PV_location_g,[(splitReturn[0])])
             Coor_PV_x_g = np.append(Coor_PV_x_g,[float(splitReturn[1])])
             Coor_PV_y_g = np.append(Coor_PV_y_g,[float(splitReturn[2])])
+            Pipe_buffer = np.append(Pipe_buffer,[splitReturn[3]])
             
-        elif cleanLine[0] == "E":
-            splitReturn = splitReturn = cleanLine.split(",")
             El_location_g = np.append(El_location_g,[(splitReturn[0])])
             Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
             Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
-    return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g
+        elif cleanLine[0] == "U":
+            splitReturn = splitReturn = cleanLine.split(",")
+            user_x = float(splitReturn[1])
+            user_y = float(splitReturn[2])
+            El_location_g = np.append(El_location_g,[(splitReturn[0])])
+            Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
+            Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
+        
+    return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer
             
 def wind_output(Location):
     from calendar import monthrange
@@ -365,10 +400,6 @@ if __name__=='__main__':
     '''
     #plot(location)
     #plot_yearly()
-    import time
-    start_time = time.time()
+    
     optimisation()
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print (elapsed_time)
     #load_txt()
