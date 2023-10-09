@@ -217,7 +217,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
     
     make_dzn_file(**simparams)
     results = Minizinc(simparams)
-    '''
+    
     if simparams['UG_STORAGE_CAPA_MAX']>0:
         new_ug_capa = results['ug_storage_capa'][0]/1e3
         if np.mean([new_ug_capa,initial_ug_capa]) > 0:
@@ -228,7 +228,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
                 #results = Pulp(simparams)
                 make_dzn_file(**simparams)
                 results = Minizinc(simparams)
-    '''
+    
     results.update(CF=simparams['CF'],
                    C_UG_STORAGE=simparams['C_UG_STORAGE'])
     

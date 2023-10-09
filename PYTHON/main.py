@@ -131,14 +131,14 @@ def optimisation():
     
     for CF in CF_group:        
         # adding a loop for different El locations
-        for e in range(1,2):#len(Coor_elx_x_g)-1,len(Coor_elx_x_g)):
+        for e in range(len(Coor_elx_x_g)):
             Coor_elx = Coor_elx_x_g[e]
             Coor_ely = Coor_elx_y_g[e]
             El_location = El_location_g[e]
             
             for j in range(len(PV_location_g)+1):
                 if j < len(PV_location_g):
-                    continue
+                    #continue
                     PV_location = [PV_location_g[j]]
                     Wind_location = [Wind_location_g[j]]
                     Coor_PV_x = [Coor_PV_x_g[j]]
@@ -166,7 +166,7 @@ def optimisation():
                 C_wind_t = C_wind_t.tolist()
                       
                 # pipe cost
-                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*787*150
+                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*589346.11 
                 if El_location in Pipe_buffer_g:
                     C_pipe = C_pipe*0.15 # USD
                 print (C_pipe)
