@@ -1,6 +1,0 @@
-Locations,cf,capex[USD],lcoh[USD/kg],FOM_PV[USD],FOM_WIND[USD],FOM_EL[USD],FOM_UG[USD],H_total[kg],pv_capacity[kW],wind_capacity[kW],pv_capacity_array[kW],wind_capacity_array[kW],el_capacity[kW],ug_capcaity[kgH2],pipe_storage_capacity[kgH2],bat_e_capacity[kWh],bat_p_capacity[kW],pv_cost[USD],wind_cost[USD],el_cost[USD],ug_storage_cost[USD],pipe_storage_cost[USD],bat_cost[USD],load[kg/s],C_trans[USD],C_pipeline[USD]
-Burnie_5_transmissionLine,100,2139964269,3.146489956,0,14972069.19,26083708.75,1408441.031,66698640,0,802791.9135,[0.],[802791.91347915],697425.3677,1367418.477,0,0,0,0,1168062234,744152867.3,64277216.2,0,0,2.115,31647684.04,0
-Burnie_2_pipeline,100,2514434210,3.659014707,0,16069240.1,27986782.35,3316238.355,66698640,0,861621.4528,[0.],[861621.45283945],748309.6885,3219648.888,0,-4.66E-10,0,0,1253659214,798446437.6,151343623.9,0,0,2.115,0,598711
-Burnie_2_transmissionLine,100,2737930859,3.921393398,0,16069240.1,27986782.35,3316238.355,66698640,0,861621.4528,[0.],[861621.45283945],748309.6885,3219648.888,0,-4.66E-10,0,0,1253659214,798446437.6,151343623.9,0,0,2.115,224095360.1,0
-,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,

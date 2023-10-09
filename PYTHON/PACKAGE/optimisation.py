@@ -169,7 +169,8 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Coor_PV_x,
+             Coor_PV_y,Coor_wind_x,Coor_wind_y,Coor_elx,Coor_ely):
     simparams.update(CF = cf)
 
     PV_pv_ref_pout = np.array([])
@@ -194,9 +195,8 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Coor_PV
     
     Wind_ref_pout = Wind_ref_pout.reshape(len(Wind_location),8760)
     
-    
     # transmission cost
-    Coor_elx, Coor_ely = 363640,5476256
+    #Coor_elx, Coor_ely = 363640,5476256
     
     # unit capacity cost
     C_PV_t = np.zeros(len(PV_location))
@@ -222,14 +222,10 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Coor_PV
                      )
     
     #print('Calculating for CF=', simparams['CF'])
-    
     #results = Pulp(simparams)
     
     make_dzn_file(**simparams)
-    
-    
     results = Minizinc(simparams)
-    
     
     if simparams['UG_STORAGE_CAPA_MAX']>0:
         new_ug_capa = results['ug_storage_capa'][0]/1e3

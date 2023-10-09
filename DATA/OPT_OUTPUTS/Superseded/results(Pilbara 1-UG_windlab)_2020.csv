@@ -1,2 +1,0 @@
-cf,capex[USD],pv_capacity[kW],wind_capacity[kW],el_capacity[kW],ug_capcaity[kgH2],pipe_storage_capacity[kgH2],bat_e_capacity[kWh],bat_p_capacity[kW],pv_cost[USD],wind_cost[USD],el_cost[USD],ug_storage_cost[USD],pipe_storage_cost[USD],bat_cost[USD],load[kg/s]
-80.0,4242289995.038914,-0.0,1749156.478875053,1520145.216354648,2923198.929137976,0.0,-5.927641388988952e-11,-5.497634760368656e-12,-0.0,2545022676.763202,1621994945.8504093,75267653.74073374,0.0,-1.0775364130322565e-09,5.0

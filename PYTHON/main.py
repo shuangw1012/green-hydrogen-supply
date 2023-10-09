@@ -116,38 +116,42 @@ def optimisation():
     CF_group = [100]
     output = []
     Simparams = []
-    PV_location_g = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
-    Wind_location_g = ['Burnie_new1','Burnie_new2','Burnie_new3','Burnie_new4','Burnie_new5','Burnie_new6','Burnie_new7']
+    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g = load_txt()
     
-    Coor_PV_x_g = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
-    Coor_PV_y_g = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
-    
-    Coor_wind_x_g = np.array([422022.02,403414.02,310707.47,347473.84,356743.79,310079.53,328368.47])
-    Coor_wind_y_g = np.array([5438623.78,5450614.89,5461025.02,5474097.29,5474283.14,5485449.3,5498113.95])
-    
+    # we set Wind locations the same as PV for now
+    Wind_location_g = PV_location_g
+    Coor_wind_x_g = Coor_PV_x_g
+    Coor_wind_y_g = Coor_PV_y_g
+
     for i in range(1):
         CF = CF_group[i]
         
-        for j in range(1):#len(PV_location_g)+1):
-            if j < len(PV_location_g):
-                PV_location = [PV_location_g[j]]
-                Wind_location = [Wind_location_g[j]]
-                Coor_PV_x = [Coor_PV_x_g[j]]
-                Coor_PV_y = [Coor_PV_y_g[j]]
-                Coor_wind_x = [Coor_wind_x_g[j]]
-                Coor_wind_y = [Coor_wind_y_g[j]]
-            if j == len(PV_location_g):
-                PV_location = PV_location_g
-                Wind_location = Wind_location_g
-                Coor_PV_x = Coor_PV_x_g
-                Coor_PV_y = Coor_PV_y_g
-                Coor_wind_x = Coor_wind_x_g
-                Coor_wind_y = Coor_wind_y_g
-            print ('Started CF: %s Case: %s'%(CF,PV_location))
-            feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
-                                          Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y)
-            output.append(feedback)
-            Simparams.append(simparams)
+        # adding a loop for different El locations
+        for e in range(len(Coor_elx_x_g)):
+            Coor_elx = Coor_elx_x_g[e]
+            Coor_ely = Coor_elx_y_g[e]
+            
+            for j in range(1):#len(PV_location_g)+1):
+                if j < len(PV_location_g):
+                    PV_location = [PV_location_g[j]]
+                    Wind_location = [Wind_location_g[j]]
+                    Coor_PV_x = [Coor_PV_x_g[j]]
+                    Coor_PV_y = [Coor_PV_y_g[j]]
+                    Coor_wind_x = [Coor_wind_x_g[j]]
+                    Coor_wind_y = [Coor_wind_y_g[j]]
+                if j == len(PV_location_g):
+                    PV_location = PV_location_g
+                    Wind_location = Wind_location_g
+                    Coor_PV_x = Coor_PV_x_g
+                    Coor_PV_y = Coor_PV_y_g
+                    Coor_wind_x = Coor_wind_x_g
+                    Coor_wind_y = Coor_wind_y_g
+                print ('Started CF: %s Case: %s'%(CF,PV_location))
+                feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
+                                              Coor_PV_x,Coor_PV_y,Coor_wind_x,Coor_wind_y,Coor_elx,Coor_ely)
+                feedback['El']=El_location_g[e] # add el location to the results
+                output.append(feedback)
+                Simparams.append(simparams)
     
     data_list = []
 
@@ -157,6 +161,7 @@ def optimisation():
         
         row_data = {
             'cf': simparams['CF'],
+            'El': results['El'],
             'capex[USD]': results['CAPEX'][0],
             'lcoh[USD/kg]': results['lcoh'][0],
             'FOM_PV[USD]':results['FOM_PV'][0],
@@ -196,7 +201,34 @@ def optimisation():
 
     RESULTS.to_csv(path_to_file+result_file, index=False)
 
-
+def load_txt():
+    PV_location_g = np.array([])
+    Coor_PV_x_g = np.array([])
+    Coor_PV_y_g = np.array([])
+    El_location_g = np.array([])
+    Coor_elx_x_g = np.array([])
+    Coor_elx_y_g = np.array([])
+    inputFileName = os.getcwd()+'/input.txt'
+    f = open( inputFileName )    
+    lines = f.readlines()
+    f.close()    
+    for line in lines:
+        cleanLine = line.strip() 
+        if cleanLine[0] == "L" or cleanLine[0] == "#": 
+            continue
+        elif cleanLine[0] == "B":
+            splitReturn = splitReturn = cleanLine.split(",")
+            PV_location_g = np.append(PV_location_g,[(splitReturn[0])])
+            Coor_PV_x_g = np.append(Coor_PV_x_g,[float(splitReturn[1])])
+            Coor_PV_y_g = np.append(Coor_PV_y_g,[float(splitReturn[2])])
+            
+        elif cleanLine[0] == "E":
+            splitReturn = splitReturn = cleanLine.split(",")
+            El_location_g = np.append(El_location_g,[(splitReturn[0])])
+            Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
+            Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
+    return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g
+            
 def wind_output(Location):
     from calendar import monthrange
     
@@ -333,4 +365,10 @@ if __name__=='__main__':
     '''
     #plot(location)
     #plot_yearly()
+    import time
+    start_time = time.time()
     optimisation()
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print (elapsed_time)
+    #load_txt()
