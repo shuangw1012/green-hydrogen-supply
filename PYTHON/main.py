@@ -131,9 +131,10 @@ def optimisation():
     
     for CF in CF_group:        
         # adding a loop for different El locations
-        for e in range(len(Coor_elx_x_g)-1,len(Coor_elx_x_g)):
+        for e in range(1,2):#len(Coor_elx_x_g)-1,len(Coor_elx_x_g)):
             Coor_elx = Coor_elx_x_g[e]
             Coor_ely = Coor_elx_y_g[e]
+            El_location = El_location_g[e]
             
             for j in range(len(PV_location_g)+1):
                 if j < len(PV_location_g):
@@ -163,18 +164,15 @@ def optimisation():
                     C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))/1000*5.496
                 C_PV_t = C_PV_t.tolist()
                 C_wind_t = C_wind_t.tolist()
-                       
-                C_pipe = np.zeros(len(PV_location))
-                for i in range(len(PV_location)):
-                    if PV_location[i] in Pipe_buffer_g:
-                        #print ('buffer', PV_location[i])
-                        C_pipe[i] = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*787*150*0.15 # USD
-                    else:
-                        #print ('not buffer', PV_location[i])
-                        C_pipe[i] = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*787*150 # USD
-                #C_pipe                
+                      
+                # pipe cost
+                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*787*150
+                if El_location in Pipe_buffer_g:
+                    C_pipe = C_pipe*0.15 # USD
+                print (C_pipe)
+                    
                 feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
-                                              C_PV_t,C_wind_t)
+                                              C_PV_t,C_wind_t,C_pipe)
                 
                 feedback['El']=El_location_g[e] # add el location to the results
                 output.append(feedback)
@@ -198,8 +196,8 @@ def optimisation():
             'H_total[kg]':results['H_total'][0],
             'pv_capacity[kW]': results['pv_max'][0],
             'wind_capacity[kW]': results['wind_max'][0],
-            'pv_capacity_array[kW]': results['pv_max_array'],
-            'wind_capacity_array[kW]': results['wind_max_array'],
+            'pv_capacity_array[kW]': results['pv_max_array'].tolist(),
+            'wind_capacity_array[kW]': results['wind_max_array'].tolist(),
             'el_capacity[kW]': results['el_max'][0],
             'ug_capcaity[kgH2]': results['ug_storage_capa'][0],
             'pipe_storage_capacity[kgH2]': results['pipe_storage_capa'][0],
@@ -212,11 +210,12 @@ def optimisation():
             'pipe_storage_cost[USD]': results['pipe_storage_capa'][0] * simparams['C_PIPE_STORAGE'],
             'bat_cost[USD]': results['bat_p_max'][0] * simparams['C_BAT_ENERGY'],
             'load[kg/s]': results['LOAD'][0],
-            'C_trans[USD]': results['C_trans'][0]
+            'C_trans[USD]': results['C_trans'][0],
+            'C_pipe[USD]': results['C_pipe'][0]
         }
         
         data_list.append(row_data)
-
+    print (type(results['pv_max_array']))
     # Convert list of dictionaries to DataFrame
     RESULTS = pd.DataFrame(data_list)
 

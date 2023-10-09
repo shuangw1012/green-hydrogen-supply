@@ -34,6 +34,7 @@ float: OM_WIND;    % O&M for wind ($/kw)
 float: OM_UG;     % O&M for underground hydrogen storage
 float: crf; %capital recovery factor
 float: H_total; %annual hydrogen generation kg/year
+float: C_pipe; % pipe transportation cost (USD)
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
 array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
@@ -83,10 +84,10 @@ var float: FOM_EL; %USD/kW.year
 var float: FOM_UG; %USD/kg.year
 var float: OF;
 
-OF = (C_PV + OM_PV/crf) * pv_max + (C_WIND + OM_WIND/crf) * wind_max + (C_EL + OM_EL/crf) * el_max + (C_UG_STORAGE + OM_UG/crf) * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
+OF = (C_PV + OM_PV/crf) * pv_max + (C_WIND + OM_WIND/crf) * wind_max + (C_EL + OM_EL/crf) * el_max + (C_UG_STORAGE + OM_UG/crf) * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans + C_pipe;
 
 %=== CONSTRAINTS ===
-constraint capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans;
+constraint capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans + C_pipe;
 constraint FOM_PV = pv_max * OM_PV; 
 constraint FOM_WIND = wind_max * OM_WIND; 
 constraint FOM_EL = el_max * OM_EL; 
@@ -188,6 +189,7 @@ output  ["!"] ++
         ["bat_e="] ++ [show(bat_e)] ++ [";"] ++
         ["LOAD="] ++ [show(LOAD)] ++ [";"] ++
         ["C_trans="] ++ [show(C_trans)] ++ [";"] ++
+        ["C_pipe="] ++ [show(C_pipe)] ++ [";"] ++
         ["lcoh="] ++ [show(lcoh)] ++ [";"] ++
         ["FOM_PV="] ++ [show(FOM_PV)] ++ [";"] ++
         ["FOM_WIND="] ++ [show(FOM_WIND)] ++ [";"] ++

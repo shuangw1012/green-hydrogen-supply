@@ -15,7 +15,8 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_PIPE_STORAGE,PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
                   C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG,DIS_RATE,
                   CF, PV_REF,WIND_REF,
-                  LOAD, C_PV_t, C_wind_t, PV_REF_POUT,WIND_REF_POUT):
+                  LOAD, C_PV_t, C_wind_t, C_pipe,
+                  PV_REF_POUT,WIND_REF_POUT):
     # pdb.set_trace()    
     n_project = 25
     crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
@@ -63,6 +64,9 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     %% Transmission cost (USD/kW)                             
     C_wind_t = %s;
     
+    %% Total pipe cost (USD/kW)                             
+    C_pipe = %s;
+    
     %% discount rate in absolute value not in percentage
     DIS_RATE = %s;
     
@@ -76,7 +80,7 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
       C_PV, C_WIND, C_EL, C_UG_STORAGE, UG_STORAGE_CAPA_MAX, C_PIPE_STORAGE,
       PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
       C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG, (1-CF/100)*sum(LOAD)*DT*3600, PV_REF, WIND_REF,
-      str(LOAD), str(C_PV_t), str(C_wind_t),DIS_RATE,crf,H_total)
+      str(LOAD), str(C_PV_t), str(C_wind_t),C_pipe,DIS_RATE,crf,H_total)
     
     with open(optdir + "hydrogen_plant_data_%s.dzn"%(str(CF)), "w") as file:
         file.write(string)
@@ -146,7 +150,7 @@ def Minizinc(simparams):
     output = str(check_output([#mzdir + 
                                'minizinc', "--soln-sep", '""',
                                "--search-complete-msg", '""', "--solver",
-                               "COIN-BC", optdir + "hydrogen_plant.mzn",
+                               "gurobi", optdir + "hydrogen_plant.mzn",
                                optdir + minizinc_data_file_name]))
     
     output = output.replace('[','').replace(']','').split('!')
@@ -169,7 +173,7 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,C_wind_t):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,C_wind_t,C_pipe):
     simparams.update(CF = cf)
 
     PV_pv_ref_pout = np.array([])
@@ -179,8 +183,8 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
         
         pv_ref = 1e3 #(kW)
         pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref)))/100)
-        
         PV_pv_ref_pout = np.append(PV_pv_ref_pout,pv_ref_pout)
+        
     PV_pv_ref_pout = PV_pv_ref_pout.reshape(len(PV_location),8760)
     
     
@@ -203,6 +207,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
                      CF = cf,           #capacity factor
                      C_PV_t = C_PV_t,
                      C_wind_t = C_wind_t,
+                     C_pipe = C_pipe,
                      PV_REF_POUT = PV_pv_ref_pout,
                      WIND_REF_POUT = Wind_ref_pout
                      )
@@ -212,7 +217,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
     
     make_dzn_file(**simparams)
     results = Minizinc(simparams)
-    
+    '''
     if simparams['UG_STORAGE_CAPA_MAX']>0:
         new_ug_capa = results['ug_storage_capa'][0]/1e3
         if np.mean([new_ug_capa,initial_ug_capa]) > 0:
@@ -223,7 +228,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
                 #results = Pulp(simparams)
                 make_dzn_file(**simparams)
                 results = Minizinc(simparams)
-    
+    '''
     results.update(CF=simparams['CF'],
                    C_UG_STORAGE=simparams['C_UG_STORAGE'])
     
