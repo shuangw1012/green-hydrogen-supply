@@ -166,10 +166,9 @@ def optimisation():
                 C_wind_t = C_wind_t.tolist()
                       
                 # pipe cost
-                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*589346.11 
+                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*589346.11*0.67
                 if El_location in Pipe_buffer_g:
                     C_pipe = C_pipe*0.15 # USD
-                print (C_pipe)
                     
                 feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
                                               C_PV_t,C_wind_t,C_pipe)
@@ -215,7 +214,6 @@ def optimisation():
         }
         
         data_list.append(row_data)
-    print (type(results['pv_max_array']))
     # Convert list of dictionaries to DataFrame
     RESULTS = pd.DataFrame(data_list)
 
