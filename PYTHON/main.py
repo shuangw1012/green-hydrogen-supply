@@ -159,9 +159,9 @@ def optimisation():
                 C_PV_t = np.zeros(len(PV_location))
                 C_wind_t = np.zeros(len(Wind_location))
                 for i in range(len(PV_location)):
-                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))/1000*5.496
+                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))/1000*5.496*0.67
                 for i in range(len(Wind_location)):
-                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))/1000*5.496
+                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))/1000*5.496*0.67
                 C_PV_t = C_PV_t.tolist()
                 C_wind_t = C_wind_t.tolist()
                       
