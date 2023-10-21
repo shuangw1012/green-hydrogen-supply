@@ -99,31 +99,23 @@ def optimisation():
     
     import multiprocessing as mp
     
-    # for Location in ['Pilbara 2', 'Pilbara 3', 'Pilbara 4', 'Burnie 1', 'Burnie 2', 'Burnie 3', 'Burnie 4',
-    #                'Pinjara 1', 'Pinjara 2', 'Pinjara 3', 'Pinjara 4',
-    #                'Upper Spencer Gulf 1', 'Upper Spencer Gulf 2', 'Upper Spencer Gulf 3', 'Upper Spencer Gulf 4',
-    #                'Gladstone 1', 'Gladstone 2', 'Gladstone 3']:
-        
-    #for Location in ['Burnie 1','Burnie 2','Burnie 3','Burnie 4']:
-
-        #Update the weather data files
-        #SolarResource(Location)
-    
-        # # WindSource(Location)
-        #WindSource_windlab(Location)
-        
-    #Location = ['Burnie 1','Burnie 2']#,'Burnie 3','Burnie 4']
-    #output = Optimise(load=5, cf=80, storage_type='Salt Cavern', simparams=simparams,Location=Location)
     CF_group = [100]
     output = []
     Simparams = []
-    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer = load_txt()
+    
+    # read input file
+    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
+    
+    # update resource data
+    #Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g)
     
     # we set Wind locations the same as PV for now
     Wind_location_g = PV_location_g
     Coor_wind_x_g = Coor_PV_x_g
     Coor_wind_y_g = Coor_PV_y_g
     
+    
+    # get the locations within pipe buffer
     Pipe_buffer_g = np.array([])
     for i in range(len(PV_location_g)):
         if Pipe_buffer[i] == 'True':
@@ -131,47 +123,50 @@ def optimisation():
     
     for CF in CF_group:        
         # adding a loop for different El locations
-        for e in range(len(Coor_elx_x_g)):
+        for e in range(1):#len(Coor_elx_x_g)):
             Coor_elx = Coor_elx_x_g[e]
             Coor_ely = Coor_elx_y_g[e]
             El_location = El_location_g[e]
             
             for j in range(len(PV_location_g)+1):
                 if j < len(PV_location_g):
-                    #continue
+                    continue
                     PV_location = [PV_location_g[j]]
                     Wind_location = [Wind_location_g[j]]
                     Coor_PV_x = [Coor_PV_x_g[j]]
                     Coor_PV_y = [Coor_PV_y_g[j]]
                     Coor_wind_x = [Coor_wind_x_g[j]]
                     Coor_wind_y = [Coor_wind_y_g[j]]
+                    Area_list = [1e6] # assume unlimited capacity if one location chosen
                 if j == len(PV_location_g):
+                    #continue
                     PV_location = PV_location_g
                     Wind_location = Wind_location_g
                     Coor_PV_x = Coor_PV_x_g
                     Coor_PV_y = Coor_PV_y_g
                     Coor_wind_x = Coor_wind_x_g
                     Coor_wind_y = Coor_wind_y_g
-                
+                    Area_list = Area.tolist()
+                    
                 print ('Started CF: %s Case: %s %s'%(CF,PV_location,El_location_g[e]))
                 
                 # transmission cost unit capacity
+                km_per_degree = 111.32 # km/deg
                 C_PV_t = np.zeros(len(PV_location))
                 C_wind_t = np.zeros(len(Wind_location))
                 for i in range(len(PV_location)):
-                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))/1000*5.496*0.67
+                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))*km_per_degree/1000*5.496*0.67
                 for i in range(len(Wind_location)):
-                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))/1000*5.496*0.67
+                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))*km_per_degree/1000*5.496*0.67
                 C_PV_t = C_PV_t.tolist()
                 C_wind_t = C_wind_t.tolist()
                       
                 # pipe cost
-                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))/1000*589346.11*0.67
+                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))*km_per_degree/1000*589346.11*0.67
                 if El_location in Pipe_buffer_g:
                     C_pipe = C_pipe*0.15 # USD
-                    
                 feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
-                                              C_PV_t,C_wind_t,C_pipe)
+                                              C_PV_t,C_wind_t,C_pipe,Area_list)
                 
                 feedback['El']=El_location_g[e] # add el location to the results
                 output.append(feedback)
@@ -195,8 +190,8 @@ def optimisation():
             'H_total[kg]':results['H_total'][0],
             'pv_capacity[kW]': results['pv_max'][0],
             'wind_capacity[kW]': results['wind_max'][0],
-            'pv_capacity_array[kW]': results['pv_max_array'].tolist(),
-            'wind_capacity_array[kW]': results['wind_max_array'].tolist(),
+            #'pv_capacity_array[kW]': results['pv_max_array'].tolist(),
+            #'wind_capacity_array[kW]': results['wind_max_array'].tolist(),
             'el_capacity[kW]': results['el_max'][0],
             'ug_capcaity[kgH2]': results['ug_storage_capa'][0],
             'pipe_storage_capacity[kgH2]': results['pipe_storage_capa'][0],
@@ -212,11 +207,14 @@ def optimisation():
             'C_trans[USD]': results['C_trans'][0],
             'C_pipe[USD]': results['C_pipe'][0]
         }
-        
+        if len(results['pv_max_array'])>1:
+            for j in range(len(results['pv_max_array'])):
+                row_data['pv_capacity_%s[kW]'%PV_location[j]] = results['pv_max_array'][j]
+            for j in range(len(results['pv_max_array'])):
+                row_data['wind_capacity_%s[kW]'%PV_location[j]] = results['wind_max_array'][j]
         data_list.append(row_data)
     # Convert list of dictionaries to DataFrame
     RESULTS = pd.DataFrame(data_list)
-
 
     #RESULTS
     parent_directory = os.path.dirname(os.getcwd())
@@ -224,6 +222,71 @@ def optimisation():
     result_file = 'results_2020.csv'
 
     RESULTS.to_csv(path_to_file+result_file, index=False)
+
+
+def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
+    import glob
+    import shutil
+    location = 'Tas'
+    
+    # read the lat and long from existing wind data
+    raw_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'+ os.sep + 'raw_data' + os.sep + location
+    csv_files = glob.glob(os.path.join(raw_data_folder, 'BARRA*'))
+    Latitude = []
+    Longitude = []
+    for csv_file in csv_files:
+        filename = os.path.basename(csv_file)
+        parts = filename.split('-')
+        Latitude.append(-float(parts[3])) # - for south hemisphere
+        Longitude.append(float(parts[4]))
+    Lat = np.linspace(min(Latitude),max(Latitude),int(round((max(Latitude)-min(Latitude))/0.11,0))+1)
+    Long = np.linspace(min(Longitude),max(Longitude),int(round((max(Longitude)-min(Longitude))/0.11,0))+1)
+   
+    for i in range(len(PV_location_g)):
+        input_lat = Coor_PV_x_g[i]
+        input_lon = Coor_PV_y_g[i]
+        # find closest point to the input
+        index_lat = np.where(input_lat-Lat<0)[0][0]
+        index_lon = np.where(Long-input_lon>0)[0][0]
+        Index_lat = np.array([index_lat-1,index_lat-1,index_lat,index_lat])
+        Index_lon = np.array([index_lon-1,index_lon,index_lon-1,index_lon])
+        List_lat = Lat[Index_lat]
+        List_lon = Long[Index_lon]
+        distance = np.sqrt((List_lat-input_lat)**2+(List_lon-input_lon)**2)
+        
+        k = np.where(distance==min(distance))[0][0]
+        closest_lat = round(Lat[Index_lat[k]],2)
+        closest_long = round(Long[Index_lon[k]],2)
+        
+        # read raw wind data
+        raw_data_file = raw_data_folder + os.sep + 'BARRA-output-%s-%s-2014.csv'%(closest_lat,closest_long)
+        try:
+            df = pd.read_csv(raw_data_file)
+        except:
+            print ('Raw data does not match for %s %s'%(input_lat,input_lon))
+        
+        
+        # read raw solar data, now we are using data from ninja
+        raw_data_file2 = raw_data_folder + os.sep + 'Process_data_%s_%s_2019.csv'%(closest_lat,closest_long)
+        try:
+            df_solar = pd.read_csv(raw_data_file2)
+        except:
+            print ('Raw data does not match for %s %s'%(input_lat,input_lon))
+        
+        weather_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'
+        new_file = weather_data_folder + os.sep + 'weather_data_%s.csv'%PV_location_g[i]
+        shutil.copy(weather_data_folder + os.sep + 'weather_data_template.csv', new_file)
+        
+        df_new = pd.read_csv(weather_data_folder + os.sep + 'weather_data_template.csv')
+        
+        # change lat, long, wspd, and wdir, DNI and GHI
+        df_new.loc[0, 'lat'] = Coor_PV_x_g[i]
+        df_new.loc[0, 'lon'] = Coor_PV_y_g[i]
+        df_new.loc[2:, 'Snow Depth Units'] = df['wdir'].values
+        df_new.loc[2:, 'Pressure Units'] = df['wspd'].values
+        df_new.loc[2:, 'Dew Point Units'] = df_solar['DNI'].values
+        df_new.loc[2:, 'DNI Units'] = df_solar['GHI'].values
+        df_new.to_csv(new_file, index=False)
 
 def load_txt():
     PV_location_g = np.array([])
@@ -233,7 +296,8 @@ def load_txt():
     Coor_elx_x_g = np.array([])
     Coor_elx_y_g = np.array([])
     Pipe_buffer = np.array([])
-    inputFileName = os.getcwd()+'/input.txt'
+    Area = np.array([])
+    inputFileName = os.getcwd()+'/input_tas.txt'
     f = open( inputFileName )    
     lines = f.readlines()
     f.close()    
@@ -241,12 +305,13 @@ def load_txt():
         cleanLine = line.strip() 
         if cleanLine[0] == "L" or cleanLine[0] == "#": 
             continue
-        elif cleanLine[0] == "B":
+        elif cleanLine[0] == "K":
             splitReturn = splitReturn = cleanLine.split(",")
             PV_location_g = np.append(PV_location_g,[(splitReturn[0])])
             Coor_PV_x_g = np.append(Coor_PV_x_g,[float(splitReturn[1])])
             Coor_PV_y_g = np.append(Coor_PV_y_g,[float(splitReturn[2])])
-            Pipe_buffer = np.append(Pipe_buffer,[splitReturn[3]])
+            Area = np.append(Area,[float(splitReturn[3])])
+            Pipe_buffer = np.append(Pipe_buffer,[splitReturn[4]])
             
             El_location_g = np.append(El_location_g,[(splitReturn[0])])
             Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
@@ -258,8 +323,8 @@ def load_txt():
             El_location_g = np.append(El_location_g,[(splitReturn[0])])
             Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
             Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
-        
-    return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer
+    
+    return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area
             
 def wind_output(Location):
     from calendar import monthrange

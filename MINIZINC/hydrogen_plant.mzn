@@ -42,6 +42,7 @@ array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference w
 
 array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
 array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
+array[N_PV] of float: Area;    %Available land area
 
 
 % === VARIABLES ===
@@ -108,7 +109,7 @@ constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind
 
 constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
 constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
-
+constraint forall(  j in N_wind  )(  wind_max_array[j]/1e3/5.2 + pv_max_array[j]/1e3/29.5 <= Area[j] );
 constraint forall(  i in tint  )(  pv_pout[i] = sum(j in N_PV)(pv_max_array[j]/PV_REF * PV_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  wind_pout[i] = sum(j in N_wind)(wind_max_array[j]/WIND_REF * WIND_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  pv_pout[i] + wind_pout[i] - curtail_p[i] - el_pin_pvwind[i] - bat_pin[i] = 0  );

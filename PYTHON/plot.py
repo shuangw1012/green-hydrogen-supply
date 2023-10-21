@@ -47,7 +47,7 @@ for filter_location in Filter_location:
                                  int(data['C_trans[USD]'][i]/1e6),int(data['C_pipe[USD]'][i]/1e6)]
     
     colors = ['lightblue', 'lightpink', 'lightgray', 'lightgreen', 'lightyellow', 'orange', 'blue', 'magenta', 'brown', 'pink']
-    Values = cost_values
+    Values = lcoh_values
     colors = colors[:len(Values[cases[0]])]
     cost_categories = cost_categories[:len(Values[cases[0]])]
     
@@ -65,12 +65,12 @@ for filter_location in Filter_location:
     Bottom = Bottom.reshape(len(cost_categories),int(len(Bottom)/len(cost_categories)))
     Bottom = [[row[i] for row in Bottom] for i in range(len(Bottom[0]))]
     
-    plt.ylabel('Cost (MUSD)',fontsize = 14)
+    #plt.ylabel('Cost (MUSD)',fontsize = 14)
     
-    #plt.ylabel('LCOH (USD/kg)',fontsize = 14)
+    plt.ylabel('LCOH (USD/kg)',fontsize = 14)
     
     plt.legend(loc='upper right',ncols=3)
-    plt.ylim(0,3200)
+    plt.ylim(0,4.2)
     # Display the numbers on top of the bars with adjusted positions
     
     if Values == cost_values:
@@ -86,8 +86,8 @@ for filter_location in Filter_location:
                     
     plt.tight_layout()
     plt.tick_params(axis='both', labelsize=12)
-    plt.savefig(os.getcwd()+'/Cost_breakdown_%s.png'%filter_location,dpi=100)
-    #plt.savefig(os.getcwd()+'/lcoh-%s.png'%filter_location,dpi=100)
+    #plt.savefig(os.getcwd()+'/Cost_breakdown_%s.png'%filter_location,dpi=100)
+    plt.savefig(os.getcwd()+'/lcoh-%s.png'%filter_location,dpi=100)
     plt.close(fig)
 
 

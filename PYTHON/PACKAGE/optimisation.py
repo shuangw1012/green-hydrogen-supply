@@ -16,7 +16,7 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG,DIS_RATE,
                   CF, PV_REF,WIND_REF,
                   LOAD, C_PV_t, C_wind_t, C_pipe,
-                  PV_REF_POUT,WIND_REF_POUT):
+                  PV_REF_POUT,WIND_REF_POUT,Area):
     # pdb.set_trace()    
     n_project = 25
     crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
@@ -75,12 +75,15 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     
     %%Hydrogen production
     H_total = %s;
-        
+    
+    %% Available land area (km2)                             
+    Area = %s;
+    
     """ %(len(LOAD), len(PV_REF_POUT), len(WIND_REF_POUT), DT, int(n_project),EL_ETA, BAT_ETA_in, BAT_ETA_out,
       C_PV, C_WIND, C_EL, C_UG_STORAGE, UG_STORAGE_CAPA_MAX, C_PIPE_STORAGE,
       PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
       C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG, (1-CF/100)*sum(LOAD)*DT*3600, PV_REF, WIND_REF,
-      str(LOAD), str(C_PV_t), str(C_wind_t),C_pipe,DIS_RATE,crf,H_total)
+      str(LOAD), str(C_PV_t), str(C_wind_t),C_pipe,DIS_RATE,crf,H_total,str(Area))
     
     with open(optdir + "hydrogen_plant_data_%s.dzn"%(str(CF)), "w") as file:
         file.write(string)
@@ -173,9 +176,9 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,C_wind_t,C_pipe):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,C_wind_t,C_pipe,Area):
     simparams.update(CF = cf)
-
+    
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
     for loc in PV_location:
@@ -209,12 +212,10 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
                      C_wind_t = C_wind_t,
                      C_pipe = C_pipe,
                      PV_REF_POUT = PV_pv_ref_pout,
-                     WIND_REF_POUT = Wind_ref_pout
+                     WIND_REF_POUT = Wind_ref_pout,
+                     Area = Area
                      )
-    
-    #print('Calculating for CF=', simparams['CF'])
-    #results = Pulp(simparams)
-    
+
     make_dzn_file(**simparams)
     results = Minizinc(simparams)
     
@@ -233,7 +234,6 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
                    C_UG_STORAGE=simparams['C_UG_STORAGE'])
     
     return(results,simparams)
-    
 
 def Pulp(simparams):   
     from pulp import LpVariable,LpProblem,LpMinimize,LpStatus
