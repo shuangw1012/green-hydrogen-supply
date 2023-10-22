@@ -208,8 +208,58 @@ def plot_GIS():
         img = Image.open(io.BytesIO(img_data))
         img.save('image_%s.png'%Results['El'].values[k])
         #m.save('map_%s.png'%Results['El'].values[i])
+
+def plot_GIS2():
+    import geopandas as gpd
+    from shapely.geometry import Point,Polygon,LineString
+    import matplotlib.pyplot as plt
+    import folium
+    from folium.features import DivIcon
+    # Load your data from the CSV file
+    data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
     
-plot_GIS()
+    crs = {'init': 'epsg:4326'}
+    geometry = [Point(xy) for xy in zip(data["Long"], data["Lat"])]
+    geodata = gpd.GeoDataFrame(data, crs=crs, geometry=geometry)
+    # Create a Folium map
+    m = folium.Map(location=[-40.95, 145.5], zoom_start=10.4)
+    
+    for i, row in geodata.iterrows():
+        if row['#Name'] != 'User':
+            turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
+            folium.Marker(
+                location=[row['geometry'].y, row['geometry'].x],
+                icon=turbine_icon,
+                popup=row['#Name'],
+            ).add_to(m)
+
+            character = row['#Name'] + ' ' + '%sMW'%(int(data['Area'][i]*5.2))
+            folium.Marker(
+                location=[row['geometry'].y-0.03, row['geometry'].x-0.03],
+                icon=DivIcon(
+                    html='<div style="font-size: 12pt">%s</div>' % character,
+                    ),
+                popup=row['#Name'],  # Use the "Name" column as the label
+            ).add_to(m)
+            
+        elif row['#Name'] == 'User':
+            user_icon = folium.features.CustomIcon('%s/Icon/factory.png'%os.getcwd(), icon_size=(50,50))
+            folium.Marker(
+                location=[row['geometry'].y, row['geometry'].x+0.05],
+                icon=user_icon,
+                popup=row['#Name'],  # Use the "Name" column as the label
+            ).add_to(m)
+    
+    # Save the map
+    import io
+    from PIL import Image
+    
+    img_data = m._to_png(5)
+    img = Image.open(io.BytesIO(img_data))
+    img.save('image.png')
+    #m.save('map_%s.png'%Results['El'].values[i])
+
+plot_GIS2()
 
 '''
 
