@@ -107,8 +107,8 @@ constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
 constraint bat_e_capa >= 0;
 constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
 
-constraint forall(  j in N_PV  )(  pv_max_array[j] >=10000 );
-constraint forall(  j in N_wind  )(  wind_max_array[j] >=10000 );
+constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
+constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
 constraint forall(  j in N_wind  )(  wind_max_array[j]/1e3/5.2 + pv_max_array[j]/1e3/29.5 <= Area[j] );
 constraint forall(  i in tint  )(  pv_pout[i] = sum(j in N_PV)(pv_max_array[j]/PV_REF * PV_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  wind_pout[i] = sum(j in N_wind)(wind_max_array[j]/WIND_REF * WIND_REF_POUT[j,i]) );
