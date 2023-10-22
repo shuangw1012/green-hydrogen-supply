@@ -123,7 +123,7 @@ def optimisation():
     
     for CF in CF_group:        
         # adding a loop for different El locations
-        for e in range(1):#len(Coor_elx_x_g)):
+        for e in range(len(Coor_elx_x_g)):
             Coor_elx = Coor_elx_x_g[e]
             Coor_ely = Coor_elx_y_g[e]
             El_location = El_location_g[e]
@@ -155,14 +155,14 @@ def optimisation():
                 C_PV_t = np.zeros(len(PV_location))
                 C_wind_t = np.zeros(len(Wind_location))
                 for i in range(len(PV_location)):
-                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))*km_per_degree/1000*5.496*0.67
+                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))*km_per_degree*5.496*0.67
                 for i in range(len(Wind_location)):
-                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))*km_per_degree/1000*5.496*0.67
+                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))*km_per_degree*5.496*0.67
                 C_PV_t = C_PV_t.tolist()
                 C_wind_t = C_wind_t.tolist()
                       
                 # pipe cost
-                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))*km_per_degree/1000*589346.11*0.67
+                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))*km_per_degree*589346.11*0.67
                 if El_location in Pipe_buffer_g:
                     C_pipe = C_pipe*0.15 # USD
                 feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
