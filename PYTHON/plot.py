@@ -100,10 +100,10 @@ def plot_GIS():
     Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
     
-    for k in range(len(Results['El'].values)):
+    for k in range(1):#len(Results['El'].values)):
         Plot_results = np.array([])
         for j in range(len(data['#Name'])-1):
-            if Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]!=0:
+            if Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]>5000:
                 Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
                                                      int(Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]/1000),
                                                      int(data['Area'][j]*5.2)])
@@ -206,9 +206,8 @@ def plot_GIS():
         
         img_data = m._to_png(5)
         img = Image.open(io.BytesIO(img_data))
-        img.save('image_%s.png'%Results['El'].values[k])
-        #m.save('map_%s.png'%Results['El'].values[i])
-
+        img.save(os.getcwd()+'image_%s.png'%Results['El'].values[k])
+        
 def plot_GIS2():
     import geopandas as gpd
     from shapely.geometry import Point,Polygon,LineString
@@ -256,11 +255,91 @@ def plot_GIS2():
     
     img_data = m._to_png(5)
     img = Image.open(io.BytesIO(img_data))
-    img.save('image.png')
+    img.save(os.getcwd()+'image.png')
     #m.save('map_%s.png'%Results['El'].values[i])
 
-plot_GIS2()
 
+plot_GIS()
+
+
+def plot(location):
+
+    # Example data (replace these arrays with your actual data)
+    array1 = np.genfromtxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),location[0]), delimiter=',')
+    array2 = np.genfromtxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),location[1]), delimiter=',')
+    array3 = np.genfromtxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),location[2]), delimiter=',')
+    array4 = np.genfromtxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),location[3]), delimiter=',')
+    
+    # Replace 'months1' and 'capacity_factors1' with your first set of data
+    # Replace 'months2' and 'capacity_factors2' with your second set of data
+    months1 = np.arange(1, 13)-0.225  # Assuming 24 months from 1 to 24
+    capacity_factors1 = array1  # Capacity factors for 24 months
+    
+    months2 = np.arange(1, 13)-0.075  # Assuming 12 months from 1 to 12
+    capacity_factors2 = array2 # Capacity factors for 12 months
+    
+    months3 = np.arange(1, 13)+0.075  # Assuming 12 months from 1 to 12
+    capacity_factors3 = array3 # Capacity factors for 12 months
+    
+    months4 = np.arange(1, 13)+0.225  # Assuming 12 months from 1 to 12
+    capacity_factors4 = array4 # Capacity factors for 12 months
+    
+    plt.figure(figsize=(10, 8))
+    plt.bar(months1, capacity_factors1, width=0.15, color='b', edgecolor='black', label='Wlab')
+    plt.bar(months2, capacity_factors2, width=0.15, color='green', edgecolor='black', label='BARRA')
+    plt.bar(months3, capacity_factors3, width=0.15, color='r', edgecolor='black', label='MERRA2')
+    plt.bar(months4, capacity_factors4, width=0.15, color='black', edgecolor='black', label='ERA5')
+    
+    # Add labels and legend
+    months = range(1, 13)
+    plt.xticks(months, fontsize=fontsize)
+    plt.xlabel('Month',fontsize=fontsize)
+    plt.ylabel('Capacity Factor',fontsize=fontsize)
+    #plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    plt.legend(fontsize=fontsize)
+    plt.ylim(0,0.7)
+    plt.savefig('%s/comparison_%s.png'%(os.getcwd(),location[0]), dpi=500, bbox_inches='tight')
+
+def plot_yearly():
+    title = np.array(['Burnie 1', 'Burnie 2', 'Burnie 3', 'Burnie 4', 'Gladstone 1', 'Gladstone 2', 'Gladstone 3', 
+                      'Pilbara 1', 'Pilbara 2', 'Pilbara 3', 'Pilbara 4', 'Pinjarra 1', 'Pinjarra 2', 'Pinjarra 3', 'Pinjarra 4',
+                      'USG 1', 'USG 2', 'USG 3', 'USG 4'])
+    Data = np.array([[0.484,0.422,0.580,0.530,0.505],
+                     [0.572,0.551,0.645,0.568,0.65],
+                     [0.487,0.491,0.567,0.522,0.63],
+                     [0.369,0.416,0.571,0.459,0.415],
+                     [0.356,0.206,0.411,0.389,0.35],
+                     [0.375,0.207,0.371,0.410,0.2],
+                     [0.375,0.397,0.432,0.453,0.38],
+                     [0.426,0.352,0.438,0.480,0.46],
+                     [0.374,0.237,0.294,0.447,0.38],
+                     [0.423,0.421,0.415,0.468,0.48],
+                     [0.426,0.400,0.417,0.453,0.48],
+                     [0.499,0.366,0.437,0.519,0.49],
+                     [0.499, 0.428, 0.395, 0.489, 0.38],
+                     [0.495, 0.405, 0.465, 0.523, 0.55],
+                     [0.494, 0.405, 0.428, 0.502, 0.46],
+                     [0.419, 0.362, 0.482, 0.478, 0.45],
+                     [0.449, 0.358, 0.475, 0.526, 0.47],
+                     [0.435, 0.388, 0.499, 0.523, 0.5],
+                     [0.415, 0.362, 0.428, 0.478, 0.405]])
+    
+    Index = np.linspace(1,len(title),len(title))
+    plt.figure(figsize=(16, 8))
+    plt.bar(Index-0.3, Data[:,3], width=0.15, color='b', edgecolor='black', label='Wlab')
+    plt.bar(Index-0.15, Data[:,2], width=0.15, color='green', edgecolor='black', label='BARRA')
+    plt.bar(Index, Data[:,0], width=0.15, color='r', edgecolor='black', label='MERRA2')
+    plt.bar(Index+0.15, Data[:,1], width=0.15, color='black', edgecolor='black', label='ERA5')
+    plt.bar(Index+0.3, Data[:,4], width=0.15, color='pink', edgecolor='black', label='Atlas')
+    
+    #plt.xlabel(title,fontsize=fontsize,rotation=45)
+    plt.ylabel('Capacity Factor',fontsize=fontsize)
+    plt.xticks(Index-0.5,title,fontsize=fontsize,rotation=45)
+    plt.yticks(fontsize=fontsize)
+    plt.legend(ncol=5,fontsize=fontsize)
+    plt.ylim(0,0.7)
+    plt.savefig('%s/comparison_yearly.png'%(os.getcwd()), dpi=500, bbox_inches='tight')
 '''
 
 # Display the numbers on top of the bars with adjusted positions
