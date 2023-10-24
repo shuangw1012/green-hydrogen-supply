@@ -130,7 +130,8 @@ def optimisation():
             
             for j in range(len(PV_location_g)+1):
                 if j < len(PV_location_g):
-                    continue
+                    if PV_location_g[j] != El_location:
+                        continue
                     PV_location = [PV_location_g[j]]
                     Wind_location = [Wind_location_g[j]]
                     Coor_PV_x = [Coor_PV_x_g[j]]
@@ -139,7 +140,7 @@ def optimisation():
                     Coor_wind_y = [Coor_wind_y_g[j]]
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
                 if j == len(PV_location_g):
-                    #continue
+                    continue
                     PV_location = PV_location_g
                     Wind_location = Wind_location_g
                     Coor_PV_x = Coor_PV_x_g
@@ -387,9 +388,9 @@ def CF_output():
     df.to_csv(os.getcwd() + os.sep + 'CF_output.txt', sep=',', index=False, header=True)
     
 if __name__=='__main__':
-    
+    optimisation()
     #plot(location)
     #plot_yearly()
     
-    CF_output()
+    #CF_output()
     #load_txt()

@@ -1,8 +1,0 @@
-Location,UTM_E,UTM_N,Pipe_buffer
-Burnie_new1,422022.02,5438623.78,False
-Burnie_new2,403414.02,5450614.89,True
-Burnie_new3,310707.47,5461025.02,False
-Burnie_new4,347473.84,5474097.29,False
-Burnie_new5,356743.79,5474283.14,False
-Burnie_new6,310079.53,5485449.3,False
-User,363640,5476256
