@@ -87,24 +87,16 @@ def optimisation():
     
     #Choose the location
     
+    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
+    
     # #Update the weather data files
     # SolarResource(Location)
-    
-    # # # WindSource(Location)
-    # WindSource_windlab(Location)
-    
-    # storage_type = 'Lined Rock'
-    # results = Optimise(5, 100, storage_type, simparams)
-    
     
     import multiprocessing as mp
     
     CF_group = [100]
     output = []
     Simparams = []
-    
-    # read input file
-    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     
     # update resource data
     #Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g)
@@ -223,8 +215,7 @@ def optimisation():
     result_file = 'results_2020.csv'
 
     RESULTS.to_csv(path_to_file+result_file, index=False)
-
-
+    
 def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
     import glob
     import shutil
@@ -298,7 +289,7 @@ def load_txt():
     Coor_elx_y_g = np.array([])
     Pipe_buffer = np.array([])
     Area = np.array([])
-    inputFileName = os.getcwd()+'/input_tas.txt'
+    inputFileName = os.getcwd()+'/input_solar_test.txt'
     f = open( inputFileName )    
     lines = f.readlines()
     f.close()    
@@ -306,7 +297,7 @@ def load_txt():
         cleanLine = line.strip() 
         if cleanLine[0] == "L" or cleanLine[0] == "#": 
             continue
-        elif cleanLine[0] == "K":
+        elif cleanLine[0] != "#" and cleanLine[0] != "F" :
             splitReturn = splitReturn = cleanLine.split(",")
             PV_location_g = np.append(PV_location_g,[(splitReturn[0])])
             Coor_PV_x_g = np.append(Coor_PV_x_g,[float(splitReturn[1])])
@@ -317,14 +308,14 @@ def load_txt():
             El_location_g = np.append(El_location_g,[(splitReturn[0])])
             Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
             Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
-        elif cleanLine[0] == "U":
+        elif cleanLine[0] == "F":
             splitReturn = splitReturn = cleanLine.split(",")
             user_x = float(splitReturn[1])
             user_y = float(splitReturn[2])
             El_location_g = np.append(El_location_g,[(splitReturn[0])])
             Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
             Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
-    
+    print (PV_location_g)
     return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area
             
 def wind_output(Location):
@@ -346,16 +337,15 @@ def wind_output(Location):
     # Calculate the monthly capacity factor
     monthly_capacity_factor = [(output / (rated_capacity * (days_in_month * 24))) for output, days_in_month in zip(monthly_output, [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])]
     capacity_factors_arr = np.array(monthly_capacity_factor)[:12]
+    np.savetxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),Location), capacity_factors_arr, delimiter=',')
     return (np.average(capacity_factors_arr))
-    #np.savetxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),Location), capacity_factors_arr, delimiter=',')
-
 
 def solar_output(Location):
     from calendar import monthrange
     
     pv_ref = 1e3 #(kW)
     pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref)))/100)
-
+    #print (sum(pv_ref_pout)/(pv_ref*8760))
     # Split the hourly data into monthly data
     monthly_output = []
     start_date = '2014-01-01'
@@ -369,26 +359,47 @@ def solar_output(Location):
     # Calculate the monthly capacity factor
     monthly_capacity_factor = [(output / (rated_capacity * (days_in_month * 24))) for output, days_in_month in zip(monthly_output, [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])]
     capacity_factors_arr = np.array(monthly_capacity_factor)[:12]
-    return (np.average(capacity_factors_arr))
     #np.savetxt('%s/monthly_capacity_factor_%s.csv'%(os.getcwd(),Location), capacity_factors_arr, delimiter=',')
+    return (capacity_factors_arr)
 
+def solar_assessment():
+    # read input file
+    data_list = np.array([])
+    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
+    #data_list = np.append(data_list,PV_location_g[:])
+    
+    for i in range(1):#len(PV_location_g)):
+        Location = PV_location_g[i]
+        print (Location)
+        SolarResource(Location)
+        results = np.average(solar_output(Location))
+        data_list = np.append(data_list,results)
+    #data_list = data_list.reshape(12,int(len(data_list)/12))
+    df = pd.DataFrame(data_list)
+
+    # Save DataFrame to CSV
+    df.to_csv('output.csv', index=False)
+        
 def CF_output():
     PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     
     CF = np.array([])
-    for j in range(len(PV_location_g)):
+    for j in range(1):#len(PV_location_g)):
         loc = PV_location_g[j]
         print 
         print (loc)
         update_resource_data(loc)
-        CF = np.append(CF,[loc,Coor_PV_x_g[j],Coor_PV_y_g[j],round(solar_output(loc),3),round(wind_output(loc),3)])
+        solar_output(loc)
+        #CF = np.append(CF,[loc,Coor_PV_x_g[j],Coor_PV_y_g[j],round(solar_output(loc),3),round(wind_output(loc),3)])
     
+    '''
     CF = CF.reshape(int(len(CF)/5),5)
     df = pd.DataFrame(CF, columns=['Location', 'Lat', 'Long', 'Solar CF', 'Wind CF'])
     df.to_csv(os.getcwd() + os.sep + 'CF_output.txt', sep=',', index=False, header=True)
-    
+    '''
 if __name__=='__main__':
     optimisation()
+    #solar_assessment()
     #plot(location)
     #plot_yearly()
     

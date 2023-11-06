@@ -282,6 +282,7 @@ def plot_GIS():
             'weight': 3,  # Change the line width
             }
             folium.GeoJson(line_gdf, style_function=lambda x: line_style).add_to(m)
+            
         # for pipe line
         line = LineString([geodata.iloc[-2]['geometry'], geodata.iloc[-1]['geometry']])
         line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
@@ -407,9 +408,137 @@ def plot_GIS2():
     img.save(os.getcwd()+'/image.png')
     #m.save('map_%s.png'%Results['El'].values[i])
 
+def plot_GIS3():
+    import geopandas as gpd
+    from shapely.geometry import Point,Polygon,LineString
+    import matplotlib.pyplot as plt
+    import folium
+    from folium.features import DivIcon
+    # Load your data from the CSV file
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_user.csv'))
+    data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
+    
+    for k in range(1):#len(Results['El'].values)):
+        Plot_results = np.array([])
+        for j in range(len(data['#Name'])-1):
+            if Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]>5000:
+                Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
+                                                     int(Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]/1000),
+                                                     int(data['Area'][j]*5.2)])
+        Plot_results = Plot_results.reshape(int(len(Plot_results)/5),5)
+        el_lat = data[data['#Name']==Results['El'][k]]['Lat'].iloc[0]
+        el_long = data[data['#Name']==Results['El'][k]]['Long'].iloc[0]
+        
+        df = pd.DataFrame(Plot_results, columns=['#Name', 'Lat', 'Long','K_wind','K_wind_max'])
+        
+        df = df.append({'#Name': 'Electrolyser', 'Lat': el_lat, 'Long': el_long}, ignore_index=True)
+        df = df.append({'#Name': 'End user', 'Lat': data['Lat'].values[-1], 'Long': data['Long'].values[-1]}, ignore_index=True)
+        df = df.append({'#Name': 'Middle', 'Lat': -40.79, 'Long': 144.96}, ignore_index=True)
+        crs = {'init': 'epsg:4326'}
+        geometry = [Point(xy) for xy in zip(df["Long"], df["Lat"])]
+        geodata = gpd.GeoDataFrame(df, crs=crs, geometry=geometry)
+        # Create a Folium map
+        m = folium.Map(location=[-40.95, 145.5], zoom_start=10.4)
+        
+        # Add the connection line (if needed)
+        for i in range(len(df)-2):
+            line = LineString([geodata.iloc[i]['geometry'], geodata.iloc[-2]['geometry']])
+            line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+            #folium.GeoJson(line_gdf).add_to(m)
+            line_style = {
+            'color': 'red',  # Change the line color (e.g., to red)
+            'weight': 3,  # Change the line width
+            }
+            folium.GeoJson(line_gdf, style_function=lambda x: line_style).add_to(m)
+            
+        # for second line
+        line = LineString([geodata.iloc[0]['geometry'], geodata.iloc[-1]['geometry']])
+        line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+        line_style2 = {
+        'color': 'Red',  # Line color
+        'weight': 3,  # Line width
+        'dashArray': '5, 10',  # Length of dashes and gaps (5 pixels, 10 pixels)
+        'dashOffset': '0',}
+        folium.GeoJson(line_gdf, style_function=lambda x: line_style2).add_to(m)
+        
+        line = LineString([geodata.iloc[-2]['geometry'], geodata.iloc[-1]['geometry']])
+        line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+        line_style2 = {
+        'color': 'Red',  # Line color
+        'weight': 3,  # Line width
+        'dashArray': '5, 10',  # Length of dashes and gaps (5 pixels, 10 pixels)
+        'dashOffset': '0',}
+        folium.GeoJson(line_gdf, style_function=lambda x: line_style2).add_to(m)
+        
+        
+        # Add your original GeoDataFrame (points) to the map with labels
+        for i, row in geodata.iterrows():
+            if row['#Name'] != 'Electrolyser' and row['#Name'] != 'End user' and row['#Name'] != 'Middle':
+                if row['geometry'].y == el_lat and row['geometry'].x == el_long:
+                    
+                    turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
+                    folium.Marker(
+                        location=[row['geometry'].y, row['geometry'].x+0.04],
+                        icon=turbine_icon,
+                        popup=row['#Name'],
+                    ).add_to(m)
+    
+                    
+                    character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
+                    folium.Marker(
+                        location=[row['geometry'].y-0.03, row['geometry'].x+0.01],
+                        icon=DivIcon(
+                            html='<div style="font-size: 12pt">%s</div>' % character,
+                            ),
+                        popup=row['#Name'],  # Use the "Name" column as the label
+                    ).add_to(m)
+                    
+                else:
+                    turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
+                    folium.Marker(
+                        location=[row['geometry'].y, row['geometry'].x],
+                        icon=turbine_icon,
+                        popup=row['#Name'],
+                    ).add_to(m)
+    
+                    
+                    character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
+                    folium.Marker(
+                        location=[row['geometry'].y-0.03, row['geometry'].x-0.03],
+                        icon=DivIcon(
+                            html='<div style="font-size: 12pt">%s</div>' % character,
+                            ),
+                        popup=row['#Name'],  # Use the "Name" column as the label
+                    ).add_to(m)
+                
 
-#plot_GIS()
-
+            elif row['#Name'] == 'Electrolyser':
+                electro_icon = folium.features.CustomIcon('%s/Icon/electrolyser.png'%os.getcwd(), icon_size=(50,50))
+                folium.Marker(
+                    location=[row['geometry'].y, row['geometry'].x],
+                    icon=electro_icon,
+                    popup=row['#Name'],  # Use the "Name" column as the label
+                ).add_to(m)
+                
+            elif row['#Name'] == 'End user':
+                user_icon = folium.features.CustomIcon('%s/Icon/factory.png'%os.getcwd(), icon_size=(50,50))
+                folium.Marker(
+                    location=[row['geometry'].y, row['geometry'].x+0.05],
+                    icon=user_icon,
+                    popup=row['#Name'],  # Use the "Name" column as the label
+                ).add_to(m)
+        
+        # Save the map
+        import io
+        from PIL import Image
+        
+        img_data = m._to_png(5)
+        img = Image.open(io.BytesIO(img_data))
+        img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
+        
+        
+#plot_GIS3()
+fontsize = 14
 
 def plot(location):
 
@@ -489,6 +618,49 @@ def plot_yearly():
     plt.legend(ncol=5,fontsize=fontsize)
     plt.ylim(0,0.7)
     plt.savefig('%s/comparison_yearly.png'%(os.getcwd()), dpi=500, bbox_inches='tight')
+
+def plot_yearly_solar():
+    title = np.array(['Burnie 1', 'Burnie 2', 'Burnie 3', 'Burnie 4', 'Gladstone 1', 'Gladstone 2', 'Gladstone 3', 
+                      'Pilbara 1', 'Pilbara 2', 'Pilbara 3', 'Pilbara 4', 'Pinjarra 1', 'Pinjarra 2', 'Pinjarra 3', 'Pinjarra 4',
+                      'USG 1', 'USG 2', 'USG 3', 'USG 4'])
+    Data = np.array([[0.1420, 0.1630, 0.1681, 0.1536],
+                    [0.1420, 0.1649, 0.1754, 0.1528],
+                    [0.1500, 0.1653, 0.1729, 0.1565],
+                    [0.1495, 0.1722, 0.1806, 0.1609],
+                    [0.1800, 0.2263, 0.2159, 0.1902],
+                    [0.1820, 0.2255, 0.2190, 0.1921],
+                    [0.1850, 0.2232, 0.2327, 0.2019],
+                    [0.2010, 0.2212, 0.2134, 0.2200],
+                    [0.2150, 0.2130, 0.2181, 0.2186],
+                    [0.2152, 0.2151, 0.2124, 0.2182],
+                    [0.2160, 0.2098, 0.2121, 0.2204],
+                    [0.1850, 0.1867, 0.1768, 0.1939],
+                    [0.1870, 0.1853, 0.1791, 0.1975],
+                    [0.1850, 0.1867, 0.1819, 0.1973],
+                    [0.1845, 0.1834, 0.1728, 0.1927],
+                    [0.1855, 0.2200, 0.2209, 0.1979],
+                    [0.1750, 0.2156, 0.2161, 0.1886],
+                    [0.1800, 0.2249, 0.2247, 0.2010],
+                    [0.1820, 0.2212, 0.2232, 0.1978]])
+    
+    Index = np.linspace(1,len(title),len(title))
+    plt.figure(figsize=(16, 8))
+    #plt.bar(Index-0.3, Data[:,3], width=0.15, color='b', edgecolor='black', label='Wlab')
+    plt.bar(Index-0.15, Data[:,2], width=0.15, color='green', edgecolor='black', label='Himawari')
+    plt.bar(Index, Data[:,1], width=0.15, color='r', edgecolor='black', label='MERRA2')
+    plt.bar(Index+0.15, Data[:,0], width=0.15, color='black', edgecolor='black', label='SolCast')
+    plt.bar(Index+0.3, Data[:,3], width=0.15, color='pink', edgecolor='black', label='Atlas')
+    
+    #plt.xlabel(title,fontsize=fontsize,rotation=45)
+    plt.ylabel('Capacity Factor',fontsize=fontsize)
+    plt.xticks(Index-0.5,title,fontsize=fontsize,rotation=45)
+    plt.yticks(fontsize=fontsize)
+    plt.legend(ncol=5,fontsize=fontsize)
+    plt.ylim(0,0.3)
+    plt.savefig('%s/comparison_yearly_solar.png'%(os.getcwd()), dpi=500, bbox_inches='tight')
+
+plot_yearly_solar()
+
 '''
 
 # Display the numbers on top of the bars with adjusted positions
