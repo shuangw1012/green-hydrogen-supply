@@ -87,7 +87,8 @@ def optimisation():
     
     #Choose the location
     
-    PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
+    #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
+    df = pd.read_csv(os.getcwd()+os.sep+'input_tas.txt')
     
     # #Update the weather data files
     # SolarResource(Location)
@@ -102,66 +103,69 @@ def optimisation():
     #Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g)
     
     # we set Wind locations the same as PV for now
-    Wind_location_g = PV_location_g
-    Coor_wind_x_g = Coor_PV_x_g
-    Coor_wind_y_g = Coor_PV_y_g
-    
-    
+    Wind_location = PV_location = df['#Name'].values[:-1]
+    Coor_wind_x = Coor_PV_x = df['Lat'].values[:-1]
+    Coor_wind_y = Coor_PV_y = df['Long'].values[:-1]
+        
     # get the locations within pipe buffer
-    Pipe_buffer_g = np.array([])
-    for i in range(len(PV_location_g)):
-        if Pipe_buffer[i] == 'True':
-            Pipe_buffer_g = np.append(Pipe_buffer_g,PV_location_g[i])
+    Pipe_buffer = df[df['Within_buffer']==True]['#Name'].values
+    
+    # get the locations as candidate electrolyser
+    El_location = df[df['Electrolyser']==True]['#Name'].values
     
     for CF in CF_group:        
         # adding a loop for different El locations
-        for e in range(len(Coor_elx_x_g)):
-            Coor_elx = Coor_elx_x_g[e]
-            Coor_ely = Coor_elx_y_g[e]
-            El_location = El_location_g[e]
-            
-            for j in range(len(PV_location_g)+1):
-                if j < len(PV_location_g):
-                    if PV_location_g[j] != El_location:
-                        continue
-                    PV_location = [PV_location_g[j]]
-                    Wind_location = [Wind_location_g[j]]
-                    Coor_PV_x = [Coor_PV_x_g[j]]
-                    Coor_PV_y = [Coor_PV_y_g[j]]
-                    Coor_wind_x = [Coor_wind_x_g[j]]
-                    Coor_wind_y = [Coor_wind_y_g[j]]
+        for e in range(len(El_location)):
+            el_location = El_location[e]
+            coor_elx = df[df['#Name']==el_location]['Lat'].values[0]
+            coor_ely = df[df['#Name']==el_location]['Long'].values[0]
+            for j in range(len(PV_location)+1):
+                if j < len(PV_location):
+                    #if PV_location[j] != el_location:
+                    #    continue
+                    pv_location = [PV_location[j]]
+                    wind_location = [Wind_location[j]]
+                    coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
+                    coor_PV_y = [Coor_PV_y[j]]
+                    coor_wind_x = [Coor_wind_x[j]]
+                    coor_wind_y = [Coor_wind_y[j]]
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
-                if j == len(PV_location_g):
-                    continue
-                    PV_location = PV_location_g
-                    Wind_location = Wind_location_g
-                    Coor_PV_x = Coor_PV_x_g
-                    Coor_PV_y = Coor_PV_y_g
-                    Coor_wind_x = Coor_wind_x_g
-                    Coor_wind_y = Coor_wind_y_g
-                    Area_list = Area.tolist()
                     
-                print ('Started CF: %s Case: %s %s'%(CF,PV_location,El_location_g[e]))
+                if j == len(PV_location):
+                    continue
+                    pv_location = PV_location
+                    #wind_location = Wind_location
+                    coor_PV_x = Coor_PV_x
+                    coor_PV_y = Coor_PV_y
+                    coor_wind_x = Coor_wind_x
+                    coor_wind_y = Coor_wind_y
+                    Area_list = df['Area'].values[:-1].tolist()
+                    
+                print ('Started CF: %s Case: %s %s'%(CF,pv_location,el_location))
                 
                 # transmission cost unit capacity
                 km_per_degree = 111.32 # km/deg
-                C_PV_t = np.zeros(len(PV_location))
-                C_wind_t = np.zeros(len(Wind_location))
-                for i in range(len(PV_location)):
-                    C_PV_t[i] = np.sqrt(abs((Coor_PV_x[i]-Coor_elx)**2+(Coor_PV_y[i]-Coor_ely)**2))*km_per_degree*5.496*0.67
-                for i in range(len(Wind_location)):
-                    C_wind_t[i] = np.sqrt(abs((Coor_wind_x[i]-Coor_elx)**2+(Coor_wind_y[i]-Coor_ely)**2))*km_per_degree*5.496*0.67
+                detour = 1.2 # detour factor
+                C_PV_t = np.zeros(len(pv_location))
+                C_wind_t = np.zeros(len(wind_location))
+                for i in range(len(pv_location)):
+                    C_PV_t[i] = np.sqrt(abs((coor_PV_x[i]-coor_elx)**2+(coor_PV_y[i]-coor_ely)**2))*km_per_degree*5.496*0.67*detour
+                #for i in range(len(wind_location)):
+                    C_wind_t[i] = np.sqrt(abs((coor_wind_x[i]-coor_elx)**2+(coor_wind_y[i]-coor_ely)**2))*km_per_degree*5.496*0.67*detour
                 C_PV_t = C_PV_t.tolist()
                 C_wind_t = C_wind_t.tolist()
                       
                 # pipe cost
-                C_pipe = np.sqrt(abs((user_x-Coor_elx)**2+(user_y-Coor_ely)**2))*km_per_degree*589346.11*0.67
-                if El_location in Pipe_buffer_g:
+                user_x = df[df['#Name']=='User']['Lat'].values[0]
+                user_y = df[df['#Name']=='User']['Long'].values[0]
+                C_pipe = np.sqrt(abs((user_x-coor_elx)**2+(user_y-coor_ely)**2))*km_per_degree*589346.11*0.67
+                if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
+                
                 feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
-                feedback['El']=El_location_g[e] # add el location to the results
+                feedback['El']=El_location[e] # add el location to the results
                 output.append(feedback)
                 Simparams.append(simparams)
     
@@ -280,44 +284,6 @@ def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
         df_new.loc[2:, 'DNI Units'] = df_solar['GHI'].values
         df_new.to_csv(new_file, index=False)
 
-def load_txt():
-    PV_location_g = np.array([])
-    Coor_PV_x_g = np.array([])
-    Coor_PV_y_g = np.array([])
-    El_location_g = np.array([])
-    Coor_elx_x_g = np.array([])
-    Coor_elx_y_g = np.array([])
-    Pipe_buffer = np.array([])
-    Area = np.array([])
-    inputFileName = os.getcwd()+'/input_solar_test.txt'
-    f = open( inputFileName )    
-    lines = f.readlines()
-    f.close()    
-    for line in lines:
-        cleanLine = line.strip() 
-        if cleanLine[0] == "L" or cleanLine[0] == "#": 
-            continue
-        elif cleanLine[0] != "#" and cleanLine[0] != "F" :
-            splitReturn = splitReturn = cleanLine.split(",")
-            PV_location_g = np.append(PV_location_g,[(splitReturn[0])])
-            Coor_PV_x_g = np.append(Coor_PV_x_g,[float(splitReturn[1])])
-            Coor_PV_y_g = np.append(Coor_PV_y_g,[float(splitReturn[2])])
-            Area = np.append(Area,[float(splitReturn[3])])
-            Pipe_buffer = np.append(Pipe_buffer,[splitReturn[4]])
-            
-            El_location_g = np.append(El_location_g,[(splitReturn[0])])
-            Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
-            Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
-        elif cleanLine[0] == "F":
-            splitReturn = splitReturn = cleanLine.split(",")
-            user_x = float(splitReturn[1])
-            user_y = float(splitReturn[2])
-            El_location_g = np.append(El_location_g,[(splitReturn[0])])
-            Coor_elx_x_g = np.append(Coor_elx_x_g,[float(splitReturn[1])])
-            Coor_elx_y_g = np.append(Coor_elx_y_g,[float(splitReturn[2])])
-    print (PV_location_g)
-    return PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area
-            
 def wind_output(Location):
     from calendar import monthrange
     
@@ -391,12 +357,10 @@ def CF_output():
         update_resource_data(loc)
         solar_output(loc)
         #CF = np.append(CF,[loc,Coor_PV_x_g[j],Coor_PV_y_g[j],round(solar_output(loc),3),round(wind_output(loc),3)])
-    
-    '''
     CF = CF.reshape(int(len(CF)/5),5)
     df = pd.DataFrame(CF, columns=['Location', 'Lat', 'Long', 'Solar CF', 'Wind CF'])
     df.to_csv(os.getcwd() + os.sep + 'CF_output.txt', sep=',', index=False, header=True)
-    '''
+
 if __name__=='__main__':
     optimisation()
     #solar_assessment()
