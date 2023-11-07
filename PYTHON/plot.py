@@ -239,7 +239,7 @@ def plot_bar4():
     plt.close(fig)
 
     
-plot_bar4()
+#plot_bar4()
 
 def plot_GIS():
     import geopandas as gpd
@@ -248,15 +248,24 @@ def plot_GIS():
     import folium
     from folium.features import DivIcon
     # Load your data from the CSV file
-    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_user.csv'))
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_pipeline.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
     
-    for k in range(1):#len(Results['El'].values)):
+    for k in range(len(Results['El'].values)):
+        if data['#Name'][k]!= 'KH253':
+            continue
         Plot_results = np.array([])
         for j in range(len(data['#Name'])-1):
-            if Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]>5000:
+            try:
+                if Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]>5000:
+                    Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
+                                                         int(Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]/1000),
+                                                         int(data['Area'][j]*5.2)])
+            except:
+                if data['#Name'][j]!= 'KH253':
+                    continue
                 Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
-                                                     int(Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]/1000),
+                                                     int(Results['wind_capacity[kW]'][k]/1000),
                                                      int(data['Area'][j]*5.2)])
         Plot_results = Plot_results.reshape(int(len(Plot_results)/5),5)
         el_lat = data[data['#Name']==Results['El'][k]]['Lat'].iloc[0]
@@ -357,6 +366,8 @@ def plot_GIS():
         img_data = m._to_png(5)
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
+
+plot_GIS()
         
 def plot_GIS2():
     import geopandas as gpd
