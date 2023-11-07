@@ -197,11 +197,10 @@ def plot_bar3():
     fig = plt.figure(figsize=(3, 5))
     cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
     colors = ['blue', 'lightpink', 'gray', 'lightgreen', 'black']#, 'orange', 'blue', 'magenta', 'brown', 'pink']
-    values = np.array([1.4196,1.1259,0.1293,0.2292,0.0000])
-    values2 = np.array([1.5455,1.2252,0.1552,0.0237,0.0000])
-    values3 = np.array([1.4196,1.1259,0.1293,0.0000,0.0344])
-    values4 = np.array([1.5455,1.2252,0.1552,0.0000,0.0033])
-    values = values4
+    values = np.array([1.42,1.13,0.12,0.28,0.00])
+    values = np.array([1.55,1.23,0.14,0.03,0.00])
+    values = np.array([1.42,1.13,0.12,0.00,0.03])
+    values = np.array([1.55,1.23,0.14,0.00,0.015])
     plt.bar(cost_categories, values, color=colors,width = 0.5)
     plt.xticks(rotation=45)
     for i in range(len(cost_categories)):
@@ -217,9 +216,9 @@ def plot_bar4():
     cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
     colors = ['blue', 'pink', 'gray', 'green', 'black']#, 'orange', 'blue', 'magenta', 'brown', 'pink']
     Index = np.linspace(1,len(cost_categories),len(cost_categories))
-    values3 = np.array([1.4456,1.1464,0.1323,0.0462,0.0344])
-    values2 = np.array([1.4709,1.1664,0.1176,0.2677,0.0034])
-    values1 = np.array([1.4620,1.1593,0.1208,0.1755,0.0000])
+    values3 = np.array([1.45,1.15,0.19,0.07,0.00])
+    values2 = np.array([1.42,1.13,0.26,0.11,0.01])
+    values1 = np.array([1.44,1.14,0.14,0.02,0.03])
     plt.bar(Index-0.3, values1, color=colors,width = 0.2,label = 'Electrolyser at end user',edgecolor='black',linewidth = 1.5)
     plt.bar(Index, values2, color=colors,width = 0.2,label = 'Electrolyser along pipeline',edgecolor='yellow',linewidth = 1.5)
     plt.bar(Index+0.3, values3, color=colors,width = 0.2,label = 'Electrolyser at best resource',edgecolor='red',linewidth = 1.5)
@@ -239,7 +238,7 @@ def plot_bar4():
     plt.close(fig)
 
     
-#plot_bar4()
+plot_bar4()
 
 def plot_GIS():
     import geopandas as gpd
@@ -248,12 +247,12 @@ def plot_GIS():
     import folium
     from folium.features import DivIcon
     # Load your data from the CSV file
-    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_pipeline.csv'))
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_landuse.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
     
     for k in range(len(Results['El'].values)):
-        if data['#Name'][k]!= 'KH253':
-            continue
+        #if data['#Name'][k]!= 'KF249':
+        #    continue
         Plot_results = np.array([])
         for j in range(len(data['#Name'])-1):
             try:
@@ -262,8 +261,8 @@ def plot_GIS():
                                                          int(Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]/1000),
                                                          int(data['Area'][j]*5.2)])
             except:
-                if data['#Name'][j]!= 'KH253':
-                    continue
+                #if data['#Name'][j]!= 'KF249':
+                #    continue
                 Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
                                                      int(Results['wind_capacity[kW]'][k]/1000),
                                                      int(data['Area'][j]*5.2)])
@@ -367,7 +366,7 @@ def plot_GIS():
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
 
-plot_GIS()
+#plot_GIS()
         
 def plot_GIS2():
     import geopandas as gpd

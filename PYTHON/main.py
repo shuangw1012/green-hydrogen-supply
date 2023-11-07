@@ -89,6 +89,7 @@ def optimisation():
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     df = pd.read_csv(os.getcwd()+os.sep+'input_tas.txt')
+    load = 2.115
     
     import multiprocessing as mp
     
@@ -160,10 +161,11 @@ def optimisation():
                 if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
                 
-                feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,pv_location,wind_location,
+                feedback,simparams = Optimise(load, CF, 'Lined Rock', simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
                 feedback['El']=El_location[e] # add el location to the results
+                
                 output.append(feedback)
                 Simparams.append(simparams)
     
@@ -202,6 +204,16 @@ def optimisation():
             'C_trans[USD]': results['C_trans'][0],
             'C_pipe[USD]': results['C_pipe'][0]
         }
+        n_project = 25
+        DIS_RATE = 0.06
+        crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
+        H_total = results['H_total'][0]
+        row_data['LCOH-wind']=(crf*results['wind_max'][0] * simparams['C_WIND']+results['FOM_WIND'][0])/H_total
+        row_data['LCOH-el']=(crf*results['el_max'][0] * simparams['C_EL']+results['FOM_EL'][0])/H_total
+        row_data['LCOH-UG']=(crf*results['ug_storage_capa'][0] * simparams['C_UG_STORAGE']+results['FOM_UG'][0])/H_total
+        row_data['LCOH-trans']=(crf*results['C_trans'][0])/H_total
+        row_data['LCOH-pipe']=(crf*results['C_pipe'][0])/H_total
+        
         if len(results['pv_max_array'])>1:
             for j in range(len(results['pv_max_array'])):
                 row_data['pv_capacity_%s[kW]'%PV_location[j]] = results['pv_max_array'][j]
