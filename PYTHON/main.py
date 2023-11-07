@@ -90,23 +90,21 @@ def optimisation():
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     df = pd.read_csv(os.getcwd()+os.sep+'input_tas.txt')
     
-    # #Update the weather data files
-    # SolarResource(Location)
-    
     import multiprocessing as mp
     
     CF_group = [100]
     output = []
     Simparams = []
     
-    # update resource data
-    #Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g)
     
     # we set Wind locations the same as PV for now
     Wind_location = PV_location = df['#Name'].values[:-1]
     Coor_wind_x = Coor_PV_x = df['Lat'].values[:-1]
     Coor_wind_y = Coor_PV_y = df['Long'].values[:-1]
-        
+    
+    # update resource data
+    #Resource_data(PV_location,Coor_PV_x,Coor_PV_y)
+    
     # get the locations within pipe buffer
     Pipe_buffer = df[df['Within_buffer']==True]['#Name'].values
     
@@ -122,7 +120,7 @@ def optimisation():
             for j in range(len(PV_location)+1):
                 if j < len(PV_location):
                     #if PV_location[j] != el_location:
-                    #    continue
+                    continue
                     pv_location = [PV_location[j]]
                     wind_location = [Wind_location[j]]
                     coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
@@ -132,9 +130,9 @@ def optimisation():
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
                     
                 if j == len(PV_location):
-                    continue
+                    #continue
                     pv_location = PV_location
-                    #wind_location = Wind_location
+                    wind_location = Wind_location
                     coor_PV_x = Coor_PV_x
                     coor_PV_y = Coor_PV_y
                     coor_wind_x = Coor_wind_x
@@ -162,7 +160,7 @@ def optimisation():
                 if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
                 
-                feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,PV_location,Wind_location,
+                feedback,simparams = Optimise(2.115, CF, 'Lined Rock', simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
                 feedback['El']=El_location[e] # add el location to the results

@@ -44,7 +44,7 @@ def pv_gen(capacity):
     return(output.tolist())
 
 #################################################################
-def wind_gen(hub_height=150):
+def wind_gen(loc,hub_height=150):
     """
     Parameters
     ----------
@@ -53,25 +53,34 @@ def wind_gen(hub_height=150):
     Returns wind powr generated in W for each hour in a year
     
     """
-    wind = Windpower.new()
-    
-    #dir = datadir + ['\SAM_INPUTS\WIND\\', '/SAM_INPUTS/WIND/'][platform.system()=='Linux']
-    #file_name = ['windfarm_windpower_win','windfarm_windpower_linux'][platform.system()=='Linux']
-    module = wind
     dir = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WIND' + os.sep 
-    file_name = 'windfarm_windpower'
+    if not os.path.exists(dir + os.sep + 'SAM_results'):
+        os.mkdir(dir + os.sep + 'SAM_results')
     
-    with open(dir + file_name + ".json", 'r') as file:
-        data = json.load(file)
-        data['wind_resource_filename'] = dir + 'WindSource.srw'
-        for k,v in data.items():
-            if k != "number_inputs":
-                module.value(k, v)
-    file.close()
-    # module.SystemDesign.system_capacity = capacity
-    wind.Turbine.wind_turbine_hub_ht = hub_height
-    wind.execute()
-    output = np.array(wind.Outputs.gen)
+    if not os.path.exists(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv'):
+        wind = Windpower.new()
+        
+        #dir = datadir + ['\SAM_INPUTS\WIND\\', '/SAM_INPUTS/WIND/'][platform.system()=='Linux']
+        #file_name = ['windfarm_windpower_win','windfarm_windpower_linux'][platform.system()=='Linux']
+        module = wind
+        file_name = 'windfarm_windpower'
+        
+        with open(dir + file_name + ".json", 'r') as file:
+            data = json.load(file)
+            data['wind_resource_filename'] = dir + 'WindSource.srw'
+            for k,v in data.items():
+                if k != "number_inputs":
+                    module.value(k, v)
+        file.close()
+        # module.SystemDesign.system_capacity = capacity
+        wind.Turbine.wind_turbine_hub_ht = hub_height
+        wind.execute()
+        output = np.array(wind.Outputs.gen)
+        np.savetxt(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv', output, delimiter=',')
+    else:
+        print ('skip PySAM for wind for %s'%loc)
+        output = np.loadtxt(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv', delimiter=',')
+        
     #print ('wind_gen finishes')
     return(output.tolist())
 

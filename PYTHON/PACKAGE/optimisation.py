@@ -196,7 +196,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
         WindSource_windlab(loc2)
         
         wind_ref = 320e3 #(kW)
-        wind_ref_pout = list(np.trunc(100*np.array(wind_gen()))/100)
+        wind_ref_pout = list(np.trunc(100*np.array(wind_gen(loc2)))/100)
         Wind_ref_pout = np.append(Wind_ref_pout,wind_ref_pout)
     
     Wind_ref_pout = Wind_ref_pout.reshape(len(Wind_location),8760)
