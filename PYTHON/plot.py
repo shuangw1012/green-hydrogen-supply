@@ -98,100 +98,69 @@ def plot_bar2():
     CF = 100
     H_total = (CF/100)*LOAD*8760*3600
     
-    Filter_location = ['KF250', 'KF249', 'KG249', 'KG250', 'KF251', 'KL258', 'KH252', 
-                       'KL259', 'KI249', 'KK258', 'KI255', 'KK257', 'KJ256', 'KJ255', 
-                       'KH249', 'KH253', 'KG251']
+    Filter_location = ['Low cost','High cost']
+    Filter_location = ['KF249-Low cost','KF249-High cost','KF249-High cost-2','KJ256-Low cost',
+                       'KJ256-High cost','KJ256-High cost-2','User-Low cost','User-High cost','User-High cost-2']
+    cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
+    data_pipeline = np.array([
+        [1.42,1.13,0.12,0.00,0.03],
+        [1.50,1.19,0.72,0.00,0.03]])
     
-    for j in range(1):#len(Filter_location)):
-        #dir = datadir + os.sep + 'OPT_OUTPUTS' + os.sep
-        #file_name = 'results_2020_10-10.csv'
-        #df = pd.read_csv(dir+file_name)
-        #data = df[df['El'] == filter_location]
-        #data = df[df['Candidate'] == filter_location]
-        #data = data.reset_index(drop=True)
-        
-        #cases = ['Burnie 1\n LCOH: 3.32', 'Burnie 2\n 3.18', 'Burnie 3\n 2.77', 'Burnie 4\n 2.92', 
-        #         'Burnie 5 \n 2.93', 'Burnie 6\n 2.77', 'End user \n 2.96']
-        cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
-        # wind, el, storage, transmission, transporation
-        data_pipeline = np.array([
-            [1.4508, 1.1505, 0.1358, 0.0000, 0.0276],
-            [1.4196, 1.1259, 0.1293, 0.0000, 0.0344],
-            [1.4524, 1.1517, 0.1401, 0.0000, 0.0325],
-            [1.4804, 1.1739, 0.1460, 0.0000, 0.0259],
-            [1.4868, 1.1789, 0.1435, 0.0000, 0.0210],
-            [1.8166, 1.4392, 0.3818, 0.0000, 0.0411],
-            [1.5401, 1.2210, 0.1483, 0.0000, 0.0104],
-            [1.9939, 1.5791, 0.3808, 0.0000, 0.0071],
-            [1.4526, 1.1519, 0.1409, 0.0000, 0.0328],
-            [1.9555, 1.5488, 0.3081, 0.0000, 0.0056],
-            [1.5731, 1.2470, 0.2103, 0.0000, 0.0020],
-            [1.6580, 1.3141, 0.3664, 0.0000, 0.0048],
-            [1.5695, 1.2442, 0.2701, 0.0000, 0.0034],
-            [1.5089, 1.1963, 0.2600, 0.0000, 0.0168],
-            [1.4775, 1.1715, 0.1408, 0.0000, 0.0322],
-            [1.5455, 1.2252, 0.1552, 0.0000, 0.0033],
-            [1.5133, 1.1998, 0.1526, 0.0000, 0.0188]
-            ])
-        
-        data_transmission = np.array([
-            [1.4508, 1.1505, 0.1358, 0.1877, 0.0000],
-            [1.4196, 1.1259, 0.1293, 0.2292, 0.0000],
-            [1.4524, 1.1517, 0.1401, 0.2219, 0.0000],
-            [1.4804, 1.1739, 0.1460, 0.1801, 0.0000],
-            [1.4868, 1.1789, 0.1435, 0.1466, 0.0000],
-            [1.8166, 1.4392, 0.3818, 0.3507, 0.0000],
-            [1.5401, 1.2210, 0.1483, 0.0754, 0.0000],
-            [1.9939, 1.5791, 0.3808, 0.4426, 0.0000],
-            [1.4526, 1.1519, 0.1409, 0.2236, 0.0000],
-            [1.9555, 1.5488, 0.3081, 0.3456, 0.0000],
-            [1.5731, 1.2470, 0.2103, 0.0971, 0.0000],
-            [1.6580, 1.3141, 0.3664, 0.2479, 0.0000],
-            [1.5695, 1.2442, 0.2701, 0.1650, 0.0000],
-            [1.5089, 1.1963, 0.2600, 0.1189, 0.0000],
-            [1.4775, 1.1715, 0.1408, 0.2231, 0.0000],
-            [1.5455, 1.2252, 0.1552, 0.0237, 0.0000],
-            [1.5133, 1.1998, 0.1526, 0.1337, 0.0000]
-            ])
-        
-        data = data_pipeline
-        
-        colors = ['blue', 'lightpink', 'gray', 'lightgreen', 'black']#, 'orange', 'blue', 'magenta', 'brown', 'pink']
-        #Values = lcoh_values
-        #colors = colors[:len(Values[cases[0]])]
-        #cost_categories = cost_categories[:len(Values[cases[0]])]
-        
-        
-        # Create a stacked bar plot
-        fig = plt.figure(figsize=(8, 5))
-        bottom = np.zeros(len(Filter_location))  # Initialize the bottom of each section
-        Bottom = np.array([])
-        
-        for i, category in enumerate(cost_categories):
-            values = data[:,i]
-            plt.bar(Filter_location, values, label=category, bottom=bottom, color=colors[i],width = 0.5)
-            bottom += values  # Update the bottom for the next category
-            Bottom = np.append(Bottom,bottom)
-        Bottom = Bottom.reshape(len(cost_categories),int(len(Bottom)/len(cost_categories)))
-        Bottom = [[row[i] for row in Bottom] for i in range(len(Bottom[0]))]
-        #plt.ylabel('Cost (MUSD)',fontsize = 14)
-        
-        plt.ylabel('LCOH (USD/kg)',fontsize = 14)
-        
-        plt.legend(loc='upper right',ncols=2)
-        plt.ylim(0,5)
-        # Display the numbers on top of the bars with adjusted positions
-        
-        for j in range(len(Filter_location)):
-            bottom = Bottom[j]
-            plt.text(Filter_location[j], bottom[i], str(round(sum(data[j,:]),2)), ha='center', va='bottom', fontsize=10,weight='bold')
-        
-        plt.tick_params(axis='both', labelsize=12)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(os.getcwd()+'/lcoh.png',dpi=100)
-        plt.close(fig)
+    data_landuse = np.array([[1.44,1.14,0.13,0.02,0.03],
+        [1.55,1.23,0.53,0.09,0.03],
+        [1.50,1.19,0.71,0.03,0.03],
+        [1.42,1.13,0.26,0.11,0.00],
+        [1.62,1.27,0.48,0.20,0.00],
+        [1.60,1.28,0.63,0.13,0.00],
+        [1.45,1.15,0.19,0.07,0.00],
+        [1.63,1.23,0.45,0.14,0.00],
+        [1.61,1.27,0.49,0.09,0.00]
+        ])
+    
+    data = data_landuse
+    
+    colors = ['lightblue', 'lightpink', 'gray', 'lightgreen', 'black']#, 'orange', 'blue', 'magenta', 'brown', 'pink']
+    
+    # Create a stacked bar plot
+    fig = plt.figure(figsize=(8, 5))
+    bottom = np.zeros(len(Filter_location))  # Initialize the bottom of each section
+    Bottom = np.array([])
+    
+    for i, category in enumerate(cost_categories):
+        values = data[:,i]
+        print (values)
+        plt.bar(Filter_location, values, label=category, bottom=bottom, color=colors[i],width = 0.5)
+        bottom += values  # Update the bottom for the next category
+        Bottom = np.append(Bottom,bottom)
+    Bottom = Bottom.reshape(len(cost_categories),int(len(Bottom)/len(cost_categories)))
+    Bottom = [[row[i] for row in Bottom] for i in range(len(Bottom[0]))]
+    #plt.ylabel('Cost (MUSD)',fontsize = 14)
+    plt.ylabel('LCOH (USD/kg)',fontsize = 14)
+    
+    plt.legend(loc='upper right',ncols=2)
+    plt.ylim(0,5)
+    
+    for j in range(len(Filter_location)):
+        bottom = Bottom[j]
+        for i in range(len(cost_categories)):
+            if data[j,i]==0:
+                continue
+            
+            if i==2:
+                plt.text(Filter_location[j], Bottom[j][i]-1.*data[j,i], str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
+            elif i==4:
+                plt.text(Filter_location[j], Bottom[j][i]+0.15, str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
+            else:
+                plt.text(Filter_location[j], Bottom[j][i]-0.7*data[j,i], str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
+        #plt.text(Filter_location[j], bottom[i], str(round(sum(data[j,:]),2)), ha='center', va='bottom', fontsize=10,weight='bold')
+    
+    plt.tick_params(axis='both', labelsize=12)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(os.getcwd()+'/lcoh.png',dpi=100)
+    plt.close(fig)
 
+plot_bar2()
 
 def plot_bar3():
     fig = plt.figure(figsize=(3, 5))
@@ -210,7 +179,9 @@ def plot_bar3():
     plt.tight_layout()
     plt.savefig(os.getcwd()+'/lcoh-breakdown-4.png',dpi=400)
     plt.close(fig)
-    
+
+
+
 def plot_bar4():
     fig = plt.figure(figsize=(7, 5))
     cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
@@ -236,9 +207,6 @@ def plot_bar4():
     plt.tight_layout()
     plt.savefig(os.getcwd()+'/lcoh-breakdown-5.png',dpi=400)
     plt.close(fig)
-
-    
-#plot_bar4()
 
 def plot_GIS():
     import geopandas as gpd
@@ -366,7 +334,7 @@ def plot_GIS():
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
 
-plot_GIS()
+#plot_GIS()
         
 def plot_GIS2():
     import geopandas as gpd

@@ -106,6 +106,7 @@ def optimisation():
     # update resource data
     #Resource_data(PV_location,Coor_PV_x,Coor_PV_y)
     
+    
     # get the locations within pipe buffer
     Pipe_buffer = df[df['Within_buffer']==True]['#Name'].values
     
@@ -120,8 +121,8 @@ def optimisation():
             coor_ely = df[df['#Name']==el_location]['Long'].values[0]
             for j in range(len(PV_location)+1):
                 if j < len(PV_location):
-                    if PV_location[j] != el_location:
-                        continue
+                    #if PV_location[j] != el_location:
+                    continue
                     pv_location = [PV_location[j]]
                     wind_location = [Wind_location[j]]
                     coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
@@ -131,9 +132,10 @@ def optimisation():
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
                     
                 if j == len(PV_location):
-                    continue
+                    #continue
                     pv_location = PV_location
                     wind_location = Wind_location
+                    #pv_location=wind_location=
                     coor_PV_x = Coor_PV_x
                     coor_PV_y = Coor_PV_y
                     coor_wind_x = Coor_wind_x
@@ -249,7 +251,7 @@ def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
         Longitude.append(float(parts[4]))
     Lat = np.linspace(min(Latitude),max(Latitude),int(round((max(Latitude)-min(Latitude))/0.11,0))+1)
     Long = np.linspace(min(Longitude),max(Longitude),int(round((max(Longitude)-min(Longitude))/0.11,0))+1)
-   
+    Wind_data = np.array([])
     for i in range(len(PV_location_g)):
         input_lat = Coor_PV_x_g[i]
         input_lon = Coor_PV_y_g[i]
@@ -292,9 +294,14 @@ def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
         df_new.loc[0, 'lon'] = Coor_PV_y_g[i]
         df_new.loc[2:, 'Snow Depth Units'] = df['wdir'].values
         df_new.loc[2:, 'Pressure Units'] = df['wspd'].values
+        cv = (np.std(df['wspd'].values) / np.mean(df['wspd'].values)) 
+        Wind_data=np.append(Wind_data,[PV_location_g[i],round(np.mean(df['wspd'].values),2),round(cv,3)])
         df_new.loc[2:, 'Dew Point Units'] = df_solar['DNI'].values
         df_new.loc[2:, 'DNI Units'] = df_solar['GHI'].values
         df_new.to_csv(new_file, index=False)
+    Wind_data = Wind_data.reshape(int(len(Wind_data)/3),3)
+    df_Wind_data = pd.DataFrame(Wind_data, columns=['Location', 'Mean wspd', 'CoV'])
+    df_Wind_data.to_csv(weather_data_folder + os.sep + 'Wind_output.txt', sep=',', index=False, header=True)
 
 def wind_output(Location):
     from calendar import monthrange
@@ -373,8 +380,21 @@ def CF_output():
     df = pd.DataFrame(CF, columns=['Location', 'Lat', 'Long', 'Solar CF', 'Wind CF'])
     df.to_csv(os.getcwd() + os.sep + 'CF_output.txt', sep=',', index=False, header=True)
 
+def obtain_CC():
+    weather_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'
+    location1 = 'KI253'
+    location2 = 'KF249'
+    file1 = weather_data_folder + os.sep + 'weather_data_%s.csv'%location1
+    file2 = weather_data_folder + os.sep + 'weather_data_%s.csv'%location2
+    wspd1 = pd.read_csv(file1)['Pressure Units'].values[2:].astype(float)
+    wspd2 = pd.read_csv(file2)['Pressure Units'].values[2:].astype(float)
+    print (wspd1)
+    corr_matrix = np.corrcoef(wspd1, wspd2)[0, 1]
+    print (corr_matrix)
+
 if __name__=='__main__':
     optimisation()
+    #obtain_CC()
     #solar_assessment()
     #plot(location)
     #plot_yearly()
