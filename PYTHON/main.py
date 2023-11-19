@@ -120,8 +120,8 @@ def optimisation():
             coor_ely = df[df['#Name']==el_location]['Long'].values[0]
             for j in range(len(PV_location)+1):
                 if j < len(PV_location):
-                    #if PV_location[j] != el_location:
-                    continue
+                    if PV_location[j] != el_location:
+                        continue
                     pv_location = [PV_location[j]]
                     wind_location = [Wind_location[j]]
                     coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
@@ -131,7 +131,7 @@ def optimisation():
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
                     
                 if j == len(PV_location):
-                    #continue
+                    continue
                     pv_location = PV_location
                     wind_location = Wind_location
                     coor_PV_x = Coor_PV_x
@@ -161,7 +161,8 @@ def optimisation():
                 if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
                 
-                feedback,simparams = Optimise(load, CF, 'Lined Rock', simparams,pv_location,wind_location,
+                # storage: Lined Rock, Salt Cavern, No_UG
+                feedback,simparams = Optimise(load, CF, 'No_UG', simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
                 feedback['El']=El_location[e] # add el location to the results
@@ -211,6 +212,7 @@ def optimisation():
         row_data['LCOH-wind']=(crf*results['wind_max'][0] * simparams['C_WIND']+results['FOM_WIND'][0])/H_total
         row_data['LCOH-el']=(crf*results['el_max'][0] * simparams['C_EL']+results['FOM_EL'][0])/H_total
         row_data['LCOH-UG']=(crf*results['ug_storage_capa'][0] * simparams['C_UG_STORAGE']+results['FOM_UG'][0])/H_total
+        row_data['LCOH-pipe-storage']=(crf*results['pipe_storage_capa'][0] * simparams['C_PIPE_STORAGE'])/H_total
         row_data['LCOH-trans']=(crf*results['C_trans'][0])/H_total
         row_data['LCOH-pipe']=(crf*results['C_pipe'][0])/H_total
         

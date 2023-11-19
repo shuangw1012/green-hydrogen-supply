@@ -238,7 +238,7 @@ def plot_bar4():
     plt.close(fig)
 
     
-plot_bar4()
+#plot_bar4()
 
 def plot_GIS():
     import geopandas as gpd
@@ -247,7 +247,7 @@ def plot_GIS():
     import folium
     from folium.features import DivIcon
     # Load your data from the CSV file
-    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_landuse.csv'))
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_pipe_storage.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
     
     for k in range(len(Results['El'].values)):
@@ -366,7 +366,7 @@ def plot_GIS():
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
 
-#plot_GIS()
+plot_GIS()
         
 def plot_GIS2():
     import geopandas as gpd
