@@ -160,7 +160,7 @@ def plot_bar2():
     plt.savefig(os.getcwd()+'/lcoh.png',dpi=100)
     plt.close(fig)
 
-plot_bar2()
+#plot_bar2()
 
 def plot_bar3():
     fig = plt.figure(figsize=(3, 5))
@@ -334,7 +334,7 @@ def plot_GIS():
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
 
-#plot_GIS()
+plot_GIS()
         
 def plot_GIS2():
     import geopandas as gpd
@@ -349,7 +349,7 @@ def plot_GIS2():
     geometry = [Point(xy) for xy in zip(data["Long"], data["Lat"])]
     geodata = gpd.GeoDataFrame(data, crs=crs, geometry=geometry)
     # Create a Folium map
-    m = folium.Map(location=[-40.95, 145.5], zoom_start=10.4)
+    m = folium.Map(location=[-41, 145.5], zoom_start=10.4)
     
     for i, row in geodata.iterrows():
         if row['#Name'] != 'User':
@@ -515,7 +515,7 @@ def plot_GIS3():
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
         
         
-#plot_GIS3()
+#plot_GIS2()
 fontsize = 14
 
 def plot(location):
@@ -637,7 +637,7 @@ def plot_yearly_solar():
     plt.ylim(0,0.3)
     plt.savefig('%s/comparison_yearly_solar.png'%(os.getcwd()), dpi=500, bbox_inches='tight')
 
-plot_yearly_solar()
+#plot_yearly_solar()
 
 '''
 

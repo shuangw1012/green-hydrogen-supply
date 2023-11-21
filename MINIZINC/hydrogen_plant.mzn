@@ -122,7 +122,7 @@ constraint forall(  i in tint  )(  bat_pin[i] - bat_p_max <= 0 );
 
 constraint forall(  i in tint  )(  bat_pout[i] >= 0 );
 constraint forall(  i in tint  )(  bat_pout[i] - bat_p_max <= 0 );
-
+constraint forall(  i in tint  )(  el_pin[i] >= 0  );
 constraint forall(  i in tint  )(  el_pin_pvwind[i] >= 0  );
 constraint forall(  i in tint  )(  el_pin_pvwind[i] + bat_pout[i] - comp1_pin[i] - comp2_pin[i] - el_max <= 0  );
 
@@ -182,6 +182,7 @@ output  ["!"] ++
         ["comp2_hflow="] ++ [show(comp2_hflow)] ++ [";"] ++
         ["comp2_pin="] ++ [show(comp2_pin)] ++ [";"] ++
         ["res_hout="] ++ [show(res_hout)] ++ [";"] ++
+        ["el_pin_pvwind="] ++ [show(el_pin_pvwind)] ++ [";"] ++
         ["pipe_storage_hout="] ++ [show(pipe_storage_hout)] ++ [";"] ++
         ["ug_storage_hout="] ++ [show(ug_storage_hout)] ++ [";"] ++
         ["ug_storage_level="] ++ [show(ug_storage_level)] ++ [";"] ++

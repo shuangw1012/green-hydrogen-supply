@@ -234,6 +234,27 @@ def optimisation():
 
     RESULTS.to_csv(path_to_file+result_file, index=False)
     
+    # output storage_level
+    df = pd.DataFrame({'pipe_storage_level': results['pipe_storage_level'][:-1],
+                       'ug_storage_level': results['ug_storage_level'][:-1],
+                       'wind_output': results['wind_pout'],
+                       'curtail_p':results['curtail_p'],
+                       'bat_pin':results['bat_pin'],
+                       'el_pin_pvwind':results['el_pin_pvwind'],
+                       'el_pin':results['el_pin'],
+                       'comp1_pin':results['comp1_pin'],
+                       'comp2_pin':results['comp2_pin'],
+                       'pipe_storage_hout': results['pipe_storage_hout'],
+                       'ug_storage_hout':results['ug_storage_hout'],
+                       'comp1_hflow':results['comp1_hflow'],
+                       'comp2_hflow':results['comp2_hflow'],
+                       'LOAD':results['LOAD']})
+    df.to_csv(path_to_file+'output.csv', index=False)
+
+    #np.savetxt(path_to_file+'pipe_storage_level.csv', results['pipe_storage_level'], delimiter=',')
+    #np.savetxt(path_to_file+'ug_storage_level.csv', results['ug_storage_level'], delimiter=',')
+    #np.savetxt(path_to_file+'wind_output.csv', results['wind_pout'], delimiter=',')
+    
 def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
     import glob
     import shutil
@@ -383,7 +404,7 @@ def CF_output():
 def obtain_CC():
     weather_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'
     location1 = 'KI253'
-    location2 = 'KF249'
+    location2 = 'KF250'
     file1 = weather_data_folder + os.sep + 'weather_data_%s.csv'%location1
     file2 = weather_data_folder + os.sep + 'weather_data_%s.csv'%location2
     wspd1 = pd.read_csv(file1)['Pressure Units'].values[2:].astype(float)
