@@ -1,4 +1,3 @@
 #Name,Lat,Long,Area,Within_buffer,Electrolyser
 KF249,-40.7,144.73,66.01,FALSE,TRUE
-KG249,-40.81,144.75,86.93,FALSE,FALSE
 User,-40.85,145.38,,,FALSE

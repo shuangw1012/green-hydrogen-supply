@@ -122,7 +122,7 @@ def optimisation():
             for j in range(len(PV_location)+1):
                 if j < len(PV_location):
                     #if PV_location[j] != el_location:
-                    continue
+                    #continue
                     pv_location = [PV_location[j]]
                     wind_location = [Wind_location[j]]
                     coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
@@ -132,7 +132,7 @@ def optimisation():
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
                     
                 if j == len(PV_location):
-                    #continue
+                    continue
                     pv_location = PV_location
                     wind_location = Wind_location
                     #pv_location=wind_location=
