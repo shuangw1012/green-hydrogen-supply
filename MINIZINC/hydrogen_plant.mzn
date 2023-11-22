@@ -143,6 +143,7 @@ constraint forall(  i in tint  )(   comp1_hflow[i] = el_pin[i]/3600* EL_ETA/ 39.
 constraint forall(  i in tint  )(   comp2_hflow[i] >= 0  );
 constraint forall(  i in tint  )(   comp2_hflow[i] <= el_max/3600* EL_ETA/ 39.4  );
 
+constraint forall(  i in tint  )(   (comp2_hflow[i] + ug_storage_hout[i] )*DT*3600 <= ug_storage_capa );
 constraint forall(  i in tint  )(   ug_storage_level[i+1] = ug_storage_level[i] + (comp2_hflow[i] - ug_storage_hout[i] )*DT*3600  );
 constraint forall(  i in tint  )(   pipe_storage_level[i+1] = pipe_storage_level[i] + (comp1_hflow[i] - pipe_storage_hout[i] - comp2_hflow[i]) *DT*3600  );
 

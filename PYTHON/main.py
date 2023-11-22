@@ -122,7 +122,7 @@ def optimisation():
             for j in range(len(PV_location)+1):
                 if j < len(PV_location):
                     #if PV_location[j] != el_location:
-                    #continue
+                    continue
                     pv_location = [PV_location[j]]
                     wind_location = [Wind_location[j]]
                     coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
@@ -132,7 +132,7 @@ def optimisation():
                     Area_list = [1e6] # assume unlimited capacity if one location chosen
                     
                 if j == len(PV_location):
-                    continue
+                    #continue
                     pv_location = PV_location
                     wind_location = Wind_location
                     #pv_location=wind_location=
@@ -164,7 +164,8 @@ def optimisation():
                     C_pipe = C_pipe*0.15 # USD
                 
                 # storage: Lined Rock, Salt Cavern, No_UG
-                feedback,simparams = Optimise(load, CF, 'No_UG', simparams,pv_location,wind_location,
+                storage_type = 'No_UG'
+                feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
                 feedback['El']=El_location[e] # add el location to the results
@@ -173,7 +174,9 @@ def optimisation():
                 Simparams.append(simparams)
     
     data_list = []
-
+    parent_directory = os.path.dirname(os.getcwd())
+    path_to_file = parent_directory + os.sep + 'DATA' + os.sep + 'OPT_OUTPUTS' + os.sep 
+    
     for i in range(len(output)):
         results = output[i]
         simparams = Simparams[i]
@@ -224,36 +227,28 @@ def optimisation():
             for j in range(len(results['pv_max_array'])):
                 row_data['wind_capacity_%s[kW]'%PV_location[j]] = results['wind_max_array'][j]
         data_list.append(row_data)
+        
+        # output series
+        df = pd.DataFrame({'pipe_storage_level': results['pipe_storage_level'][:-1],
+                           'ug_storage_level': results['ug_storage_level'][:-1],
+                           'wind_output': results['wind_pout'],
+                           'curtail_p':results['curtail_p'],
+                           'bat_pin':results['bat_pin'],
+                           'el_pin_pvwind':results['el_pin_pvwind'],
+                           'el_pin':results['el_pin'],
+                           'comp1_pin':results['comp1_pin'],
+                           'comp2_pin':results['comp2_pin'],
+                           'pipe_storage_hout': results['pipe_storage_hout'],
+                           'ug_storage_hout':results['ug_storage_hout'],
+                           'comp1_hflow':results['comp1_hflow'],
+                           'comp2_hflow':results['comp2_hflow'],
+                           'LOAD':results['LOAD']})
+        
+        df.to_csv(path_to_file+'output-%s-%s.csv'%(results['El'],storage_type), index=False)
+        
     # Convert list of dictionaries to DataFrame
     RESULTS = pd.DataFrame(data_list)
-
-    #RESULTS
-    parent_directory = os.path.dirname(os.getcwd())
-    path_to_file = parent_directory + os.sep + 'DATA' + os.sep + 'OPT_OUTPUTS' + os.sep 
-    result_file = 'results_2020.csv'
-
-    RESULTS.to_csv(path_to_file+result_file, index=False)
-    
-    # output storage_level
-    df = pd.DataFrame({'pipe_storage_level': results['pipe_storage_level'][:-1],
-                       'ug_storage_level': results['ug_storage_level'][:-1],
-                       'wind_output': results['wind_pout'],
-                       'curtail_p':results['curtail_p'],
-                       'bat_pin':results['bat_pin'],
-                       'el_pin_pvwind':results['el_pin_pvwind'],
-                       'el_pin':results['el_pin'],
-                       'comp1_pin':results['comp1_pin'],
-                       'comp2_pin':results['comp2_pin'],
-                       'pipe_storage_hout': results['pipe_storage_hout'],
-                       'ug_storage_hout':results['ug_storage_hout'],
-                       'comp1_hflow':results['comp1_hflow'],
-                       'comp2_hflow':results['comp2_hflow'],
-                       'LOAD':results['LOAD']})
-    df.to_csv(path_to_file+'output.csv', index=False)
-
-    #np.savetxt(path_to_file+'pipe_storage_level.csv', results['pipe_storage_level'], delimiter=',')
-    #np.savetxt(path_to_file+'ug_storage_level.csv', results['ug_storage_level'], delimiter=',')
-    #np.savetxt(path_to_file+'wind_output.csv', results['wind_pout'], delimiter=',')
+    RESULTS.to_csv(path_to_file+'results_2020.csv', index=False)
     
 def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
     import glob
