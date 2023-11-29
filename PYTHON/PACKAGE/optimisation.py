@@ -181,15 +181,6 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
     
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
-    for loc in PV_location:
-        SolarResource(loc)
-        
-        pv_ref = 1e3 #(kW)
-        pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref)))/100)
-        PV_pv_ref_pout = np.append(PV_pv_ref_pout,pv_ref_pout)
-        
-    PV_pv_ref_pout = PV_pv_ref_pout.reshape(len(PV_location),8760)
-    
     
     for loc2 in Wind_location:
         #Update the weather data files
@@ -199,7 +190,18 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
         wind_ref_pout = list(np.trunc(100*np.array(wind_gen(loc2)))/100)
         Wind_ref_pout = np.append(Wind_ref_pout,wind_ref_pout)
     
-    Wind_ref_pout = Wind_ref_pout.reshape(len(Wind_location),8760)
+    Wind_ref_pout = Wind_ref_pout.reshape(len(Wind_location),len(wind_ref_pout))
+    i = 1
+    for loc in PV_location:
+        SolarResource(loc)
+        print (loc)
+        pv_ref = 1e3 #(kW)
+        pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref)))/100)
+        PV_pv_ref_pout = np.append(PV_pv_ref_pout,pv_ref_pout)
+        i=i+1
+        
+    PV_pv_ref_pout = PV_pv_ref_pout.reshape(len(PV_location),len(pv_ref_pout))
+    
     
     if storage_type!='No_UG':
         initial_ug_capa = 110

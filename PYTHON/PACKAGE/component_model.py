@@ -29,19 +29,29 @@ def pv_gen(capacity):
     module = pv
     
     dir = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'SOLAR' + os.sep 
-    file_name = 'pvfarm_pvwattsv8'
-    with open(dir + file_name + ".json", 'r') as file:
-        data = json.load(file)
-        data['solar_resource_file'] = dir + 'SolarSource.csv'
-        for k,v in data.items():
-            if k != "number_inputs":
-                module.value(k, v)
     
-    # module.SystemDesign.system_capacity = capacity
-    pv.execute()
-    output = np.array(pv.Outputs.gen)
-    #print ('PV_gen finishes')
-    return(output.tolist())
+    df = pd.read_csv(dir + 'SolarSource.csv', skiprows=0,low_memory=False)
+    num_year = int((len(df)-2)/8760)
+    Output = np.array([])
+    for i in range(1,num_year+1):
+        new_df = pd.concat([df.iloc[0:2], df.iloc[2+8760*(i-1):2+8760*i]])
+        new_df.to_csv(dir + 'SolarSource1.csv',index=False, lineterminator='\n')
+    
+        file_name = 'pvfarm_pvwattsv8'
+        with open(dir + file_name + ".json", 'r') as file:
+            data = json.load(file)
+            data['solar_resource_file'] = dir + 'SolarSource1.csv'
+            for k,v in data.items():
+                if k != "number_inputs":
+                    module.value(k, v)
+        pv.execute()
+        output = np.array(pv.Outputs.gen)
+        Output = np.append(Output,output)
+        os.remove(dir + 'SolarSource1.csv')
+    
+    print ('pv_gen finishes')
+    
+    return(Output.tolist())
 
 #################################################################
 def wind_gen(loc,hub_height=150):
@@ -81,7 +91,7 @@ def wind_gen(loc,hub_height=150):
         print ('skip PySAM for wind for %s'%loc)
         output = np.loadtxt(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv', delimiter=',')
         
-    #print ('wind_gen finishes')
+    print ('wind_gen finishes for %s'%loc)
     return(output.tolist())
 
 #################################################################
@@ -131,7 +141,7 @@ def SolarResource(Location):
     WD_file = 'weather_data_%s.csv'%(Location)
     parent_directory = os.path.dirname(os.getcwd())
     path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'    
-    data = pd.read_csv(path + os.sep + WD_file)
+    data = pd.read_csv(path + os.sep + WD_file,low_memory=False)
     data_text = data.to_csv(index=False, lineterminator='\n')
     path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'SOLAR'
     
@@ -250,7 +260,7 @@ def WindSource_windlab(Location):
     
     parent_directory = os.path.dirname(os.getcwd())
     path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'    
-    data = pd.read_csv(path + os.sep + WD_file, skiprows=0)
+    data = pd.read_csv(path + os.sep + WD_file, skiprows=0,low_memory=False)
     Lat = data.lat[0]
     Lon = data.lon[0]
     data = pd.read_csv(path + os.sep + WD_file, skiprows=2)

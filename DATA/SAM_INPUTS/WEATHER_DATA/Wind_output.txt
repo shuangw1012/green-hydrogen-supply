@@ -1,0 +1,2 @@
+Location,Mean wspd,CoV
+KF249,10.83,0.436

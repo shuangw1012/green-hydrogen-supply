@@ -98,9 +98,12 @@ def plot_bar2():
     CF = 100
     H_total = (CF/100)*LOAD*8760*3600
     
-    Filter_location = ['Low cost','High cost']
-    Filter_location = ['KF249-Low cost','KF249-High cost','KF249-High cost-2','KJ256-Low cost',
-                       'KJ256-High cost','KJ256-High cost-2','User-Low cost','User-High cost','User-High cost-2']
+    #Filter_location = ['Low cost','High cost']
+    #Filter_location = ['KF249-Low cost','KF249-High cost','KF249-High cost-2','KJ256-Low cost',
+    #                   'KJ256-High cost','KJ256-High cost-2','User-Low cost','User-High cost','User-High cost-2']
+    #Filter_location = ['Low-cost, CF100','Low-cost, CF90','High-cost, CF100','High-cost, CF90']
+    Filter_location = ['30 MW','100 MW','300 MW','1000 MW', '3000 MW']
+    Filter_location = ['Single-lowcost','Multi-lowcost','Single-highcost','Multi-highcost']
     cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
     data_pipeline = np.array([
         [1.42,1.13,0.12,0.00,0.03],
@@ -117,7 +120,23 @@ def plot_bar2():
         [1.61,1.27,0.49,0.09,0.00]
         ])
     
-    data = data_landuse
+    data_CF = np.array([[1.44,1.14,0.13,0.02,0.03],
+                        [1.44,1.14,0.04,0.02,0.04],
+                        [1.55,1.23,0.53,0.09,0.03],
+                        [1.46,1.16,0.18,0.03,0.04]])
+    
+    data_demand = np.array([[1.43,1.14,0.24,0.00,0.25],
+                            [1.43,1.14,0.14,0.00,0.07],
+                            [1.44,1.14,0.13,0.02,0.03],
+                            [1.45,1.15,0.11,0.10,0.02],
+                            [1.47,1.16,0.12,0.15,0.01]])
+    
+    data_multi = np.array([[1.44,1.14,0.13,0.02,0.03],
+                            [1.41,1.11,0.20,0.04,0.03],
+                            [1.55,1.23,0.53,0.09,0.03],
+                            [1.57,1.25,0.61,0.06,0.03]])
+    
+    data = data_multi
     
     colors = ['lightblue', 'lightpink', 'gray', 'lightgreen', 'black']#, 'orange', 'blue', 'magenta', 'brown', 'pink']
     
@@ -148,19 +167,21 @@ def plot_bar2():
             
             if i==2:
                 plt.text(Filter_location[j], Bottom[j][i]-1.*data[j,i], str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
+            elif i==3:
+                plt.text(Filter_location[j], Bottom[j][i]+0.12, str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
             elif i==4:
-                plt.text(Filter_location[j], Bottom[j][i]+0.15, str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
+                plt.text(Filter_location[j], Bottom[j][i]+0.32, str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
             else:
                 plt.text(Filter_location[j], Bottom[j][i]-0.7*data[j,i], str((data[j,i])), ha='center', va='bottom', fontsize=14,weight='bold')
         #plt.text(Filter_location[j], bottom[i], str(round(sum(data[j,:]),2)), ha='center', va='bottom', fontsize=10,weight='bold')
     
     plt.tick_params(axis='both', labelsize=12)
-    plt.xticks(rotation=45)
+    #plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(os.getcwd()+'/lcoh.png',dpi=100)
     plt.close(fig)
 
-#plot_bar2()
+plot_bar2()
 
 def plot_bar3():
     fig = plt.figure(figsize=(3, 5))
@@ -208,6 +229,7 @@ def plot_bar4():
     plt.savefig(os.getcwd()+'/lcoh-breakdown-5.png',dpi=400)
     plt.close(fig)
 
+
 def plot_GIS():
     import geopandas as gpd
     from shapely.geometry import Point,Polygon,LineString
@@ -215,7 +237,7 @@ def plot_GIS():
     import folium
     from folium.features import DivIcon
     # Load your data from the CSV file
-    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_pipe_storage.csv'))
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_tas.txt'))
     
     for k in range(len(Results['El'].values)):
@@ -334,7 +356,7 @@ def plot_GIS():
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
 
-plot_GIS()
+#plot_GIS()
         
 def plot_GIS2():
     import geopandas as gpd

@@ -100,6 +100,14 @@ def optimisation():
     
     # we set Wind locations the same as PV for now
     Wind_location = PV_location = df['#Name'].values[:-1]
+    
+    multiyear=False
+    if multiyear == True:
+        Wind_location = np.char.add(Wind_location.astype(str), '_multi')
+        PV_location = np.char.add(PV_location.astype(str), '_multi')
+        num_year = 5
+    else:
+        num_year = 1
     Coor_wind_x = Coor_PV_x = df['Lat'].values[:-1]
     Coor_wind_y = Coor_PV_y = df['Long'].values[:-1]
     
@@ -164,7 +172,7 @@ def optimisation():
                     C_pipe = C_pipe*0.15 # USD
                 
                 # storage: Lined Rock, Salt Cavern, No_UG
-                storage_type = 'No_UG'
+                storage_type = 'Lined Rock'
                 feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
@@ -213,7 +221,7 @@ def optimisation():
         n_project = 25
         DIS_RATE = 0.06
         crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
-        H_total = results['H_total'][0]
+        H_total = results['H_total'][0]/num_year
         row_data['LCOH-wind']=(crf*results['wind_max'][0] * simparams['C_WIND']+results['FOM_WIND'][0])/H_total
         row_data['LCOH-el']=(crf*results['el_max'][0] * simparams['C_EL']+results['FOM_EL'][0])/H_total
         row_data['LCOH-UG']=(crf*results['ug_storage_capa'][0] * simparams['C_UG_STORAGE']+results['FOM_UG'][0])/H_total
@@ -251,73 +259,63 @@ def optimisation():
     RESULTS.to_csv(path_to_file+'results_2020.csv', index=False)
     
 def Resource_data(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
-    import glob
     import shutil
     location = 'Tas'
     
     # read the lat and long from existing wind data
     raw_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'+ os.sep + 'raw_data' + os.sep + location
-    csv_files = glob.glob(os.path.join(raw_data_folder, 'BARRA*'))
-    Latitude = []
-    Longitude = []
-    for csv_file in csv_files:
-        filename = os.path.basename(csv_file)
-        parts = filename.split('-')
-        Latitude.append(-float(parts[3])) # - for south hemisphere
-        Longitude.append(float(parts[4]))
-    Lat = np.linspace(min(Latitude),max(Latitude),int(round((max(Latitude)-min(Latitude))/0.11,0))+1)
-    Long = np.linspace(min(Longitude),max(Longitude),int(round((max(Longitude)-min(Longitude))/0.11,0))+1)
-    Wind_data = np.array([])
+    #Wind_data = np.array([])
+    Year = np.array([2013,2014,2015,2016,2017])
     for i in range(len(PV_location_g)):
         input_lat = Coor_PV_x_g[i]
         input_lon = Coor_PV_y_g[i]
-        # find closest point to the input
-        index_lat = np.where(input_lat-Lat<0)[0][0]
-        index_lon = np.where(Long-input_lon>0)[0][0]
-        Index_lat = np.array([index_lat-1,index_lat-1,index_lat,index_lat])
-        Index_lon = np.array([index_lon-1,index_lon,index_lon-1,index_lon])
-        List_lat = Lat[Index_lat]
-        List_lon = Long[Index_lon]
-        distance = np.sqrt((List_lat-input_lat)**2+(List_lon-input_lon)**2)
+        print (input_lat,input_lon)
+        df_list = []
+        for k in range(len(Year)):
+            raw_data_file = raw_data_folder + os.sep + 'BARRA-output-%s-%s-%s.csv'%(input_lat,input_lon,Year[k])
+            try:
+                df = pd.read_csv(raw_data_file)
+            except:
+                print ('Raw data does not match for %s %s'%(input_lat,input_lon))
+            df_list.append(df)
+        df_wind = pd.concat(df_list)
+        df_wind.reset_index(drop=True, inplace=True)
         
-        k = np.where(distance==min(distance))[0][0]
-        closest_lat = round(Lat[Index_lat[k]],2)
-        closest_long = round(Long[Index_lon[k]],2)
-        
-        # read raw wind data
-        raw_data_file = raw_data_folder + os.sep + 'BARRA-output-%s-%s-2014.csv'%(closest_lat,closest_long)
-        try:
-            df = pd.read_csv(raw_data_file)
-        except:
-            print ('Raw data does not match for %s %s'%(input_lat,input_lon))
-        
+        df_wind['datetime'] = pd.to_datetime(df_wind['datetime'])
+        df_wind = df_wind[~((df_wind['datetime'].dt.month == 2) & (df_wind['datetime'].dt.day == 29))]
+        df_wind = df_wind.reset_index(drop=True)
         
         # read raw solar data, now we are using data from ninja
-        raw_data_file2 = raw_data_folder + os.sep + 'Process_data_%s_%s_2019.csv'%(closest_lat,closest_long)
+        raw_data_file2 = raw_data_folder + os.sep + 'Process_data_%s_%s_2019.csv'%(input_lat,input_lon)
         try:
             df_solar = pd.read_csv(raw_data_file2)
         except:
             print ('Raw data does not match for %s %s'%(input_lat,input_lon))
-        
+        df_solar = pd.concat([df_solar] * len(Year), ignore_index=True)
         weather_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'
-        new_file = weather_data_folder + os.sep + 'weather_data_%s.csv'%PV_location_g[i]
-        shutil.copy(weather_data_folder + os.sep + 'weather_data_template.csv', new_file)
-        
-        df_new = pd.read_csv(weather_data_folder + os.sep + 'weather_data_template.csv')
+       
+        if len(Year)<1:
+            new_file = weather_data_folder + os.sep + 'weather_data_%s.csv'%PV_location_g[i]
+            shutil.copy(weather_data_folder + os.sep + 'weather_data_template.csv', new_file)
+            df_new = pd.read_csv(weather_data_folder + os.sep + 'weather_data_template.csv')
+        else:
+            new_file = weather_data_folder + os.sep + 'weather_data_%s_multi.csv'%PV_location_g[i]
+            shutil.copy(weather_data_folder + os.sep + 'weather_data_template_multi.csv', new_file)
+            df_new = pd.read_csv(weather_data_folder + os.sep + 'weather_data_template_multi.csv')
         
         # change lat, long, wspd, and wdir, DNI and GHI
         df_new.loc[0, 'lat'] = Coor_PV_x_g[i]
         df_new.loc[0, 'lon'] = Coor_PV_y_g[i]
-        df_new.loc[2:, 'Snow Depth Units'] = df['wdir'].values
-        df_new.loc[2:, 'Pressure Units'] = df['wspd'].values
-        cv = (np.std(df['wspd'].values) / np.mean(df['wspd'].values)) 
-        Wind_data=np.append(Wind_data,[PV_location_g[i],round(np.mean(df['wspd'].values),2),round(cv,3)])
+        df_new.loc[2:, 'Snow Depth Units'] = df_wind['wdir'].values
+        df_new.loc[2:, 'Pressure Units'] = df_wind['wspd'].values
+        #cv = (np.std(df['wspd'].values) / np.mean(df['wspd'].values)) 
+        #Wind_data=np.append(Wind_data,[PV_location_g[i],round(np.mean(df['wspd'].values),2),round(cv,3)])
         df_new.loc[2:, 'Dew Point Units'] = df_solar['DNI'].values
         df_new.loc[2:, 'DNI Units'] = df_solar['GHI'].values
         df_new.to_csv(new_file, index=False)
-    Wind_data = Wind_data.reshape(int(len(Wind_data)/3),3)
-    df_Wind_data = pd.DataFrame(Wind_data, columns=['Location', 'Mean wspd', 'CoV'])
-    df_Wind_data.to_csv(weather_data_folder + os.sep + 'Wind_output.txt', sep=',', index=False, header=True)
+    #Wind_data = Wind_data.reshape(int(len(Wind_data)/3),3)
+    #df_Wind_data = pd.DataFrame(Wind_data, columns=['Location', 'Mean wspd', 'CoV'])
+    #df_Wind_data.to_csv(weather_data_folder + os.sep + 'Wind_output.txt', sep=',', index=False, header=True)
 
 def wind_output(Location):
     from calendar import monthrange
@@ -342,7 +340,7 @@ def wind_output(Location):
     return (np.average(capacity_factors_arr))
 
 def solar_output(Location):
-    from calendar import monthrange
+    
     
     pv_ref = 1e3 #(kW)
     pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref)))/100)
