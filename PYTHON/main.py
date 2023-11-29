@@ -89,7 +89,8 @@ def optimisation():
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     df = pd.read_csv(os.getcwd()+os.sep+'input_tas.txt')
-    load = 2.115
+    load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
+    unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
     import multiprocessing as mp
     
@@ -167,7 +168,7 @@ def optimisation():
                 # pipe cost
                 user_x = df[df['#Name']=='User']['Lat'].values[0]
                 user_y = df[df['#Name']=='User']['Long'].values[0]
-                C_pipe = np.sqrt(abs((user_x-coor_elx)**2+(user_y-coor_ely)**2))*km_per_degree*589346.11*0.67
+                C_pipe = np.sqrt(abs((user_x-coor_elx)**2+(user_y-coor_ely)**2))*km_per_degree*unit_cost_pipe.get(load)*0.67
                 if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
                 
