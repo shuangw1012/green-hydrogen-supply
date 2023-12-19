@@ -205,7 +205,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
     
     if storage_type!='No_UG':
         initial_ug_capa = 110
-    elif storage_type=='No_UG':
+    else:
         initial_ug_capa = 0
         
     simparams.update(DT = 1,#[s] time steps
@@ -224,6 +224,9 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
 
     make_dzn_file(**simparams)
     results = Minizinc(simparams)
+    
+    if storage_type == 'Depleted gas':
+        initial_ug_capa = results['ug_storage_capa'][0]/1e3 # no need for iteration
     
     if simparams['UG_STORAGE_CAPA_MAX']>0:
         new_ug_capa = results['ug_storage_capa'][0]/1e3
@@ -255,7 +258,7 @@ def Cost_hs(size,storage_type):
     Returns unit cost of storage in USD/kg of H2
         
     """
-    if size > 0:
+    if storage_type == 'Salt Cavern' or storage_type == 'Lined Rock':
         x = np.log10(size)
         if size > 100:
             if storage_type == 'Salt Cavern':
@@ -268,6 +271,9 @@ def Cost_hs(size,storage_type):
                     cost = 41.48
         else:
             cost = 10 ** (-0.0285*x + 2.7853)
-    else:
+    elif storage_type == 'Depleted gas':
+        cost = 2.72*0.67
+        print ('Depleted gas' + str(cost))
+    elif storage_type == 'No_UG':
         cost = 516
     return(cost)

@@ -78,7 +78,7 @@ def optimisation():
     #Choose the location
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
-    df = pd.read_csv(os.getcwd()+os.sep+'input_tas.txt')
+    df = pd.read_csv(os.getcwd()+os.sep+'input_usg.txt')
     load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
     unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
@@ -162,8 +162,8 @@ def optimisation():
                 if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
                 
-                # storage: Lined Rock, Salt Cavern, No_UG
-                storage_type = 'Lined Rock'
+                # storage: Lined Rock, Salt Cavern, No_UG, Depleted gas
+                storage_type = 'No_UG'
                 feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
