@@ -96,7 +96,7 @@ def obtain_CC():
     print (corr_matrix)
 
 if __name__=='__main__':
-    df = pd.read_csv(os.getcwd()+os.sep+'input_usg.txt')
+    df = pd.read_csv(os.getcwd()+os.sep+'input_Northusg.txt')
     
     Wind_location = PV_location = df['#Name'].values
     Coor_wind_x = Coor_PV_x = df['Lat'].values

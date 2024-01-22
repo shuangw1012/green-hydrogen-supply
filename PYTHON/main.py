@@ -28,6 +28,7 @@ def optimisation():
     
     
     #for 2020
+    
     simparams = dict(EL_ETA = 0.70,       #efficiency of electrolyser
                      BAT_ETA_in = 0.95,   #charging efficiency of battery
                      BAT_ETA_out = 0.95,  #discharg efficiency of battery
@@ -58,28 +59,38 @@ def optimisation():
     #                  PIPE_STORAGE_CAPA_MIN = 0, #minimum size of linepacking (kg of H2)
     #                  C_BAT_ENERGY = 164,        #[USD/kWh] unit cost of battery energy storage
     #                  C_BAT_POWER = 338,        #[USD/kW] unit cost of battery power capacpity
+    #                OM_EL = 13.475,    # O&M for electrolyzer ($/kw)
+    #                OM_PV = 12.70,    # O&M for PV ($/kw)
+    #                OM_WIND = 18.65,    # O&M for wind ($/kw)
+    #                OM_UG = 1.03,        # O&M for underground storage ($/kg)
+    #                DIS_RATE = 0.06        #discount rate 8%
     #                  ) 
     
-    # # for 2050
-    # simparams = dict(EL_ETA = 0.70,       #efficiency of electrolyser
-    #                  BAT_ETA_in = 0.95,   #charging efficiency of battery
-    #                  BAT_ETA_out = 0.95,  #discharg efficiency of battery
-    #                  C_PV = 465,          #[USD/kW] unit cost of PV
-    #                  C_WIND = 1323,           #[USD/kW] unit cost of Wind
-    #                  C_EL = 295,          #[USD/W] unit cost of electrolyser
-    #                  UG_STORAGE_CAPA_MAX = 0,   #maximum available salt caevern size (kg of H2)
-    #                  C_PIPE_STORAGE = 1000, #unit cost of line packing (USD/kg of H2)
-    #                  PIPE_STORAGE_CAPA_MIN = 0, #minimum size of linepacking (kg of H2)
-    #                  C_BAT_ENERGY = 131,        #[USD/kWh] unit cost of battery energy storage
-    #                  C_BAT_POWER = 270,        #[USD/kW] unit cost of battery power capacpity
-    #                  ) 
-    
+     # for 2050
+    #simparams = dict(EL_ETA = 0.70,       #efficiency of electrolyser
+    #                 BAT_ETA_in = 0.95,   #charging efficiency of battery
+    #                 BAT_ETA_out = 0.95,  #discharg efficiency of battery
+    #                 C_PV = 465,          #[USD/kW] unit cost of PV
+    #                 C_WIND = 1323,           #[USD/kW] unit cost of Wind
+    #                 C_EL = 295,          #[USD/W] unit cost of electrolyser
+    #                 UG_STORAGE_CAPA_MAX = 0,   #maximum available salt caevern size (kg of H2)
+    #                 C_PIPE_STORAGE = 1000, #unit cost of line packing (USD/kg of H2)
+    #                 PIPE_STORAGE_CAPA_MIN = 0, #minimum size of linepacking (kg of H2)
+    #                 C_BAT_ENERGY = 131,        #[USD/kWh] unit cost of battery energy storage
+    #                 C_BAT_POWER = 270,        #[USD/kW] unit cost of battery power capacpity
+    #                 OM_EL = 10.325,    # O&M for electrolyzer ($/kw)
+    #                 OM_PV = 12.70,    # O&M for PV ($/kw)
+    #                 OM_WIND = 18.65,    # O&M for wind ($/kw)
+    #                 OM_UG = 1.03,        # O&M for underground storage ($/kg)
+    #                 DIS_RATE = 0.06        #discount rate 8%
+    #                 ) 
+       
     
     #Choose the location
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     df = pd.read_csv(os.getcwd()+os.sep+'input_usg.txt')
-    load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
+    load = 0.2115#2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
     unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
     import multiprocessing as mp
@@ -163,7 +174,7 @@ def optimisation():
                     C_pipe = C_pipe*0.15 # USD
                 
                 # storage: Lined Rock, Salt Cavern, No_UG, Depleted gas
-                storage_type = 'No_UG'
+                storage_type = 'Salt Cavern'
                 feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
                                               C_PV_t,C_wind_t,C_pipe,Area_list)
                 
