@@ -102,16 +102,19 @@ def plot_bar2():
     #Filter_location = ['KF249-Low cost','KF249-High cost','KF249-High cost-2','KJ256-Low cost',
     #                   'KJ256-High cost','KJ256-High cost-2','User-Low cost','User-High cost','User-High cost-2']
     #Filter_location = ['Low-cost, CF100','Low-cost, CF90','High-cost, CF100','High-cost, CF90']
-    Filter_location = ['30 MW','100 MW','300 MW','1000 MW', '3000 MW']
+    Filter_location = ['Salt-100','Salt-90','Rock-100','Rock-90', 'Pipe-100', 'Pipe-90', 'Depleted-100', 'Depleted-90']
     #Filter_location = ['Salt Cavern','Lined Rock','Pipe Storage','Depleted Gas\nUSG','Depleted Gas\nMoomba']
     cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
   
-    data_multi = np.array([[1.68,1.33,0.19,0.00,0.46],
-                           [1.64,1.30,0.12,0.00,0.19],
-                           [1.64,1.30,0.10,0.00,0.07],
-                           [1.65,1.31,0.10,0.04,0.03],
-                           [1.66,1.32,0.10,0.07,0.01]])
-
+    data_multi = np.array([[1.64,1.30,0.10,0.00,0.08],
+                           [1.65,1.31,0.03,0.00,0.09],
+                           [1.64,1.30,0.18,0.00,0.04],
+                           [1.65,1.31,0.05,0.00,0.04],
+                           [1.90,1.51,0.68,0.01,0.04],
+                           [1.69,1.34,0.20,0.00,0.04],
+                           [1.90,1.50,0.05,0.03,0.07],
+                           [1.90,1.50,0.02,0.03,0.07]])
+    
     data = data_multi
     
     colors = ['lightblue', 'lightpink', 'gray', 'lightgreen', 'black']#, 'orange', 'blue', 'magenta', 'brown', 'pink']
@@ -157,7 +160,7 @@ def plot_bar2():
     plt.savefig(os.getcwd()+'/lcoh.png',dpi=100)
     plt.close(fig)
 
-#plot_bar2()
+plot_bar2()
 
 def plot_bar3():
     fig = plt.figure(figsize=(3, 5))
@@ -344,7 +347,7 @@ def plot_GIS_storage():
     import folium
     from folium.features import DivIcon
     # Load your data from the CSV file
-    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_30MW.csv'))
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_3000MW.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_usg_plot.txt'))
     
     for k in range(len(Results['El'].values)):
@@ -383,7 +386,7 @@ def plot_GIS_storage():
         #m = folium.Map(location=[-30, 139], zoom_start=7)
         # Add the connection line (if needed)
         for i in range(len(df)-2):
-            continue
+            #continue
             line = LineString([geodata.iloc[i]['geometry'], geodata.iloc[-3]['geometry']])
             line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
             #folium.GeoJson(line_gdf).add_to(m)
@@ -435,7 +438,7 @@ def plot_GIS_storage():
                     ).add_to(m)
                     
                 else:
-                    continue
+                    #continue
                     turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
                     folium.Marker(
                         location=[row['geometry'].y, row['geometry'].x],
@@ -457,7 +460,7 @@ def plot_GIS_storage():
             elif row['#Name'] == 'Electrolyser':
                 electro_icon = folium.features.CustomIcon('%s/Icon/electrolyser.png'%os.getcwd(), icon_size=(50,50))
                 folium.Marker(
-                    location=[row['geometry'].y+0.1, row['geometry'].x+0.15],
+                    location=[row['geometry'].y, row['geometry'].x+0.1],
                     icon=electro_icon,
                     popup=row['#Name'],  # Use the "Name" column as the label
                 ).add_to(m)
@@ -473,7 +476,7 @@ def plot_GIS_storage():
             elif row['#Name'] == 'Storage':
                 user_icon = folium.features.CustomIcon('%s/Icon/gas-storage.png'%os.getcwd(), icon_size=(50,50))
                 folium.Marker(
-                    location=[row['geometry'].y, row['geometry'].x-0.35],
+                    location=[row['geometry'].y, row['geometry'].x-0.05],
                     icon=user_icon,
                     popup=row['#Name'],  # Use the "Name" column as the label
                 ).add_to(m)
@@ -486,7 +489,7 @@ def plot_GIS_storage():
         img = Image.open(io.BytesIO(img_data))
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k]) 
 
-plot_GIS_storage()
+#plot_GIS_storage()
         
 def plot_GIS2():
     import geopandas as gpd

@@ -90,12 +90,12 @@ def optimisation():
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     df = pd.read_csv(os.getcwd()+os.sep+'input_usg.txt')
-    load = 0.2115#2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
+    load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
     unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
     import multiprocessing as mp
     
-    CF_group = [100]
+    CF_group = [90]
     output = []
     Simparams = []
     
