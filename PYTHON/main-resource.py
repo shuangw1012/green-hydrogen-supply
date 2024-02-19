@@ -77,7 +77,7 @@ def CF_output(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
         print 
         print (loc)
         update_resource_data(loc)
-        solar_output(loc)
+        #solar_output(loc)
         CF = np.append(CF,[loc,Coor_PV_x_g[j],Coor_PV_y_g[j],round(solar_output(loc),3),round(wind_output(loc),3)])
     CF = CF.reshape(int(len(CF)/5),5)
     df = pd.DataFrame(CF, columns=['Location', 'Lat', 'Long', 'Solar CF', 'Wind CF'])
@@ -96,7 +96,7 @@ def obtain_CC():
     print (corr_matrix)
 
 if __name__=='__main__':
-    df = pd.read_csv(os.getcwd()+os.sep+'input_Northusg.txt')
+    df = pd.read_csv(os.getcwd()+os.sep+'input_ADL.txt')
     
     Wind_location = PV_location = df['#Name'].values
     Coor_wind_x = Coor_PV_x = df['Lat'].values
