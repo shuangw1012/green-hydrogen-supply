@@ -95,7 +95,7 @@ def optimisation():
     
     import multiprocessing as mp
     
-    CF_group = [90]
+    CF_group = [100]
     output = []
     Simparams = []
     

@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 plt.rcParams["font.family"] = "Times New Roman"
-from projdirs import datadir
+#from projdirs import datadir
 import pandas as pd
 
 def plot_bar():
@@ -102,18 +102,16 @@ def plot_bar2():
     #Filter_location = ['KF249-Low cost','KF249-High cost','KF249-High cost-2','KJ256-Low cost',
     #                   'KJ256-High cost','KJ256-High cost-2','User-Low cost','User-High cost','User-High cost-2']
     #Filter_location = ['Low-cost, CF100','Low-cost, CF90','High-cost, CF100','High-cost, CF90']
-    Filter_location = ['Salt-100','Salt-90','Rock-100','Rock-90', 'Pipe-100', 'Pipe-90', 'Depleted-100', 'Depleted-90']
-    #Filter_location = ['Salt Cavern','Lined Rock','Pipe Storage','Depleted Gas\nUSG','Depleted Gas\nMoomba']
+    #Filter_location = ['Salt-100','Salt-90','Rock-100','Rock-90', 'Pipe-100', 'Pipe-90', 'Depleted-100', 'Depleted-90']
+    Filter_location = ['Salt Cavern\nperspective','Salt Cavern\nPrecambrian','Lined Rock','Pipe Storage','Moomba\nDepleted Gas','USG\nDepleted Gas']
     cost_categories = ['Wind', 'Electrolyser', 'Storage', 'Transmission', 'Transportation']
   
-    data_multi = np.array([[1.64,1.30,0.10,0.00,0.08],
-                           [1.65,1.31,0.03,0.00,0.09],
-                           [1.64,1.30,0.18,0.00,0.04],
-                           [1.65,1.31,0.05,0.00,0.04],
-                           [1.90,1.51,0.68,0.01,0.04],
-                           [1.69,1.34,0.20,0.00,0.04],
-                           [1.90,1.50,0.05,0.03,0.07],
-                           [1.90,1.50,0.02,0.03,0.07]])
+    data_multi = np.array([[1.64,1.30,0.10,0.00,0.07],
+        [1.64,1.30,0.10,0.00,0.15],
+        [1.64,1.30,0.18,0.00,0.04],
+        [1.90,1.51,0.68,0.01,0.04],
+        [1.90,1.50,0.05,0.03,0.07],
+        [1.64,1.30,0.05,0.00,0.08]])
     
     data = data_multi
     
@@ -160,7 +158,7 @@ def plot_bar2():
     plt.savefig(os.getcwd()+'/lcoh.png',dpi=100)
     plt.close(fig)
 
-plot_bar2()
+#plot_bar2()
 
 def plot_bar3():
     fig = plt.figure(figsize=(3, 5))
@@ -218,7 +216,7 @@ def plot_GIS():
     # Load your data from the CSV file
     Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_30MW.csv'))
     data = pd.read_csv(os.path.join(os.getcwd(), 'input_usg.txt'))
-    
+    notation = True
     for k in range(len(Results['El'].values)):
         #if data['#Name'][k]!= 'KF249':
         #    continue
@@ -249,7 +247,7 @@ def plot_GIS():
         geometry = [Point(xy) for xy in zip(df["Long"], df["Lat"])]
         geodata = gpd.GeoDataFrame(df, crs=crs, geometry=geometry)
         # Create a Folium map
-        m = folium.Map(location=[-32.8, 137.35], zoom_start=10.4)
+        m = folium.Map(location=[-32.8, 137.35], zoom_start=10.45)
         #m = folium.Map(location=[-40.95, 145.3], zoom_start=10.45)
         # Add the connection line (if needed)
         for i in range(len(df)-2):
@@ -284,15 +282,15 @@ def plot_GIS():
                         popup=row['#Name'],
                     ).add_to(m)
     
-                    
-                    character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
-                    folium.Marker(
-                        location=[row['geometry'].y-0.03, row['geometry'].x+0.01],
-                        icon=DivIcon(
-                            html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
-                            ),
-                        popup=row['#Name'],  # Use the "Name" column as the label
-                    ).add_to(m)
+                    if notation == True:
+                        character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
+                        folium.Marker(
+                            location=[row['geometry'].y-0.03, row['geometry'].x+0.01],
+                            icon=DivIcon(
+                                html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                                ),
+                            popup=row['#Name'],  # Use the "Name" column as the label
+                        ).add_to(m)
                     
                 else:
                     turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
@@ -302,15 +300,15 @@ def plot_GIS():
                         popup=row['#Name'],
                     ).add_to(m)
     
-                    
-                    character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
-                    folium.Marker(
-                        location=[row['geometry'].y-0.03, row['geometry'].x-0.03],
-                        icon=DivIcon(
-                            html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
-                            ),
-                        popup=row['#Name'],  # Use the "Name" column as the label
-                    ).add_to(m)
+                    if notation == True:
+                        character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
+                        folium.Marker(
+                            location=[row['geometry'].y-0.03, row['geometry'].x-0.03],
+                            icon=DivIcon(
+                                html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                                ),
+                            popup=row['#Name'],  # Use the "Name" column as the label
+                        ).add_to(m)
             
             elif row['#Name'] == 'End user':
                 user_icon = folium.features.CustomIcon('%s/Icon/factory.png'%os.getcwd(), icon_size=(50,50))
@@ -339,6 +337,236 @@ def plot_GIS():
         img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
 
 #plot_GIS()
+
+def plot_GIS_stg():
+    import geopandas as gpd
+    from shapely.geometry import Point,Polygon,LineString
+    import matplotlib.pyplot as plt
+    import folium
+    from folium.features import DivIcon
+    # Load your data from the CSV file
+    Results = pd.read_csv(os.path.join(os.getcwd(), 'results_2020_3000MW.csv'))
+    el_capacity = int(Results['el_capacity[kW]']/1000)
+    stg_capacity = max(int(Results['ug_capcaity[kgH2]']/1000),int(Results['pipe_storage_capacity[kgH2]']/1000))
+    data = pd.read_csv(os.path.join(os.getcwd(), 'input_usg_plot_salt1.txt'))#'input_usg_plot_salt1.txt'))
+    notation = True
+    for k in range(len(Results['El'].values)):
+        #if data['#Name'][k]!= 'KF249':
+        #    continue
+        Plot_results = np.array([])
+        for j in range(len(data['#Name'])-2):
+            try:
+                if Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]>5000:
+                    Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
+                                                         int(Results['wind_capacity_%s[kW]'%data['#Name'][j]][k]/1000),
+                                                         int(data['Area'][j]*5.2)])
+            except:
+                #if data['#Name'][j]!= 'KF249':
+                #    continue
+                Plot_results=np.append(Plot_results,[data['#Name'][j],data['Lat'][j],data['Long'][j],
+                                                     int(Results['wind_capacity[kW]'][k]/1000),
+                                                     int(data['Area'][j]*5.2)])
+        Plot_results = Plot_results.reshape(int(len(Plot_results)/5),5)
+        el_lat = data[data['#Name']==Results['El'][k]]['Lat'].iloc[0]
+        el_long = data[data['#Name']==Results['El'][k]]['Long'].iloc[0]
+        
+        df = pd.DataFrame(Plot_results, columns=['#Name', 'Lat', 'Long','K_wind','K_wind_max'])
+        
+        df = df.append({'#Name': 'Electrolyser', 'Lat': el_lat, 'Long': el_long}, ignore_index=True)
+        df = df.append({'#Name': 'End user', 'Lat': data['Lat'].values[-1], 'Long': data['Long'].values[-1]}, ignore_index=True)
+        df = df.append({'#Name': 'Storage', 'Lat': data['Lat'].values[-2], 'Long': data['Long'].values[-2]}, ignore_index=True)
+        
+        crs = {'init': 'epsg:4326'}
+        from shapely.geometry import Point
+        
+        geometry = [Point(xy) for xy in zip(df["Long"], df["Lat"])]
+        geodata = gpd.GeoDataFrame(df, crs=crs, geometry=geometry)
+        if geodata.iloc[-1]['geometry'] == Point(0,0):
+            point_x = (geodata.iloc[-3]['geometry'].x + geodata.iloc[-2]['geometry'].x)/2
+            point_y = (geodata.iloc[-3]['geometry'].y + geodata.iloc[-2]['geometry'].y)/2
+            geodata.at[len(geodata) - 1, 'geometry'] = Point(point_x, point_y)
+        
+        # (geodata.iloc[-3]['geometry']) is el
+        # (geodata.iloc[-2]['geometry']) is end user
+        # (geodata.iloc[-1]['geometry']) is storage
+        
+        # Create a Folium map
+        centre_lat = -32.8#-28.11#
+        centre_long = 137.35#140.23#
+        zoom = 10 #9
+        #m = folium.Map(location=[-30, 139], zoom_start=7)
+        m = folium.Map(location=[centre_lat, centre_long], zoom_start=zoom, control_scale=True)
+        # Add the connection line (if needed)
+        for i in range(len(df)-2):
+            line = LineString([geodata.iloc[i]['geometry'], geodata.iloc[-3]['geometry']])
+            line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+            #folium.GeoJson(line_gdf).add_to(m)
+            line_style = {
+            'color': 'red',  # Change the line color (e.g., to red)
+            'weight': 3,  # Change the line width
+            }
+            folium.GeoJson(line_gdf, style_function=lambda x: line_style).add_to(m)
+            
+        # for pipe line
+        line = LineString([geodata.iloc[-2]['geometry'], geodata.iloc[-1]['geometry']])
+        line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+        line_style2 = {
+        'color': 'black',  # Line color
+        'weight': 3,  # Line width
+        'dashArray': '5, 10',  # Length of dashes and gaps (5 pixels, 10 pixels)
+        'dashOffset': '0',}
+        folium.GeoJson(line_gdf, style_function=lambda x: line_style2).add_to(m)
+        
+        line = LineString([geodata.iloc[-3]['geometry'], geodata.iloc[-1]['geometry']])
+        line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+        line_style2 = {
+        'color': 'black',  # Line color
+        'weight': 3,  # Line width
+        'dashArray': '5, 10',  # Length of dashes and gaps (5 pixels, 10 pixels)
+        'dashOffset': '0',}
+        folium.GeoJson(line_gdf, style_function=lambda x: line_style2).add_to(m)
+        
+        # Add your original GeoDataFrame (points) to the map with labels
+        for i, row in geodata.iterrows():
+            if row['#Name'] != 'Electrolyser' and row['#Name'] != 'End user' and row['#Name'] != 'Storage':
+                if row['geometry'].y == el_lat and row['geometry'].x == el_long:
+                    
+                    turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
+                    folium.Marker(
+                        location=[row['geometry'].y, row['geometry'].x+0.04],
+                        icon=turbine_icon,
+                        popup=row['#Name'],
+                    ).add_to(m)
+    
+                    if notation == True:
+                        character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
+                        folium.Marker(
+                            location=[row['geometry'].y-0.03, row['geometry'].x+0.02],
+                            icon=DivIcon(
+                                html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                                ),
+                            popup=row['#Name'],  # Use the "Name" column as the label
+                        ).add_to(m)
+                    
+                else:
+                    turbine_icon = folium.features.CustomIcon('%s/Icon/wind-power.png'%os.getcwd(), icon_size=(50,50))
+                    folium.Marker(
+                        location=[row['geometry'].y, row['geometry'].x],
+                        icon=turbine_icon,
+                        popup=row['#Name'],
+                    ).add_to(m)
+    
+                    if notation == True:
+                        character = row['#Name'] + ' ' + '%sMW'%(df['K_wind'][i])
+                        folium.Marker(
+                            location=[row['geometry'].y-0.03, row['geometry'].x-0.03],
+                            icon=DivIcon(
+                                html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                                ),
+                            popup=row['#Name'],  # Use the "Name" column as the label
+                        ).add_to(m)
+            
+            elif row['#Name'] == 'End user':
+                user_location = [row['geometry'].y, row['geometry'].x]
+                user_icon = folium.features.CustomIcon('%s/Icon/factory.png'%os.getcwd(), icon_size=(50,50))
+                folium.Marker(
+                    location=[row['geometry'].y, row['geometry'].x+0.12],
+                    icon=user_icon,
+                    popup=row['#Name'],  # Use the "Name" column as the label
+                ).add_to(m)
+                
+                
+            elif row['#Name'] == 'Electrolyser':
+                el_location = [row['geometry'].y, row['geometry'].x]
+                electro_icon = folium.features.CustomIcon('%s/Icon/electrolyser.png'%os.getcwd(), icon_size=(50,50))
+                folium.Marker(
+                    location=[row['geometry'].y, row['geometry'].x-0.03],
+                    icon=electro_icon,
+                    popup=row['#Name'],  # Use the "Name" column as the label
+                ).add_to(m)
+                if notation == True:
+                    character = '%sMW'%(el_capacity) # + '%sMW'%(el_capacity)
+                    folium.Marker(
+                        location=[row['geometry'].y-0.03, row['geometry'].x-0.08],
+                        icon=DivIcon(
+                            html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                            ),
+                        popup=row['#Name'],  # Use the "Name" column as the label
+                    ).add_to(m)
+                
+            
+            elif row['#Name'] == 'Storage':
+                user_icon = folium.features.CustomIcon('%s/Icon/gas-storage.png'%os.getcwd(), icon_size=(50,50))
+                folium.Marker(
+                    location=[row['geometry'].y, row['geometry'].x+0.05],
+                    icon=user_icon,
+                    popup=row['#Name'],  # Use the "Name" column as the label
+                ).add_to(m)
+                if notation == True:
+                    character = '%st'%(stg_capacity)
+                    folium.Marker(
+                        location=[row['geometry'].y-0.03, row['geometry'].x+0.03],
+                        icon=DivIcon(
+                            html='<<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                            ),
+                        popup=row['#Name'],  # Use the "Name" column as the label
+                    ).add_to(m)
+        
+        # legend
+        if notation == True:
+            user_icon = folium.features.CustomIcon('%s/Icon/north.png'%os.getcwd(), icon_size=(50,50))
+            folium.Marker(
+                location=[centre_lat+0.3, centre_long+0.7],
+                icon=user_icon,
+                popup=row['#Name'],  # Use the "Name" column as the label
+            ).add_to(m)
+            
+            line = LineString([Point(centre_long+0.7,centre_lat+0.25), Point(centre_long+0.5,centre_lat+0.25)])
+            line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+            line_style = {
+            'color': 'red',  # Change the line color (e.g., to red)
+            'weight': 3,  # Change the line width
+            }
+            folium.GeoJson(line_gdf, style_function=lambda x: line_style).add_to(m)
+            
+            character = 'Transmission'
+            folium.Marker(
+                location=[centre_lat+0.26, centre_long+0.75],
+                icon=DivIcon(
+                    html='<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                    ),
+                popup=row['#Name'],  # Use the "Name" column as the label
+            ).add_to(m)
+            
+            # for pipe line
+            line = LineString([Point(centre_long+0.7,centre_lat+0.2), Point(centre_long+0.5,centre_lat+0.2)])
+            line_gdf = gpd.GeoDataFrame({'geometry': [line]}, crs=crs)
+            line_style2 = {
+            'color': 'black',  # Line color
+            'weight': 3,  # Line width
+            'dashArray': '5, 10',  # Length of dashes and gaps (5 pixels, 10 pixels)
+            'dashOffset': '0',}
+            folium.GeoJson(line_gdf, style_function=lambda x: line_style2).add_to(m)
+            
+            character = 'Pipeline'
+            folium.Marker(
+                location=[centre_lat+0.21, centre_long+0.75],
+                icon=DivIcon(
+                    html='<div style="font-size: 14pt"><b>%s</b></div>' % character,
+                    ),
+                popup=row['#Name'],  # Use the "Name" column as the label
+            ).add_to(m)
+        
+        # Save the map
+        import io
+        from PIL import Image
+        
+        img_data = m._to_png(5)
+        img = Image.open(io.BytesIO(img_data))
+        img.save(os.getcwd()+'/image_%s.png'%Results['El'].values[k])
+
+plot_GIS_stg()
+
 
 def plot_GIS_storage():
     import geopandas as gpd
