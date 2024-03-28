@@ -32,8 +32,8 @@ def optimisation():
     simparams = dict(EL_ETA = 0.70,       #efficiency of electrolyser
                      BAT_ETA_in = 0.95,   #charging efficiency of battery
                      BAT_ETA_out = 0.95,  #discharg efficiency of battery
-                     C_PV = 1122.7,          #[USD/kW] unit cost of PV
-                     C_WIND = 1455,           #[USD/kW] unit cost of Wind
+                     C_PV = 1461,#1122.7,          #[USD/kW] unit cost of PV
+                     C_WIND = 1894,#1455,           #[USD/kW] unit cost of Wind
                      C_EL = 1067,          #[USD/W] unit cost of electrolyser
                      UG_STORAGE_CAPA_MAX = 1e10,   #maximum available salt caevern size (kg of H2)
                      C_PIPE_STORAGE = 516, #unit cost of line packing (USD/kg of H2)
@@ -41,8 +41,8 @@ def optimisation():
                      C_BAT_ENERGY = 196,        #[USD/kWh] unit cost of battery energy storage
                      C_BAT_POWER = 405,        #[USD/kW] unit cost of battery power capacpity
                      OM_EL = 37.40,    # O&M for electrolyzer ($/kw)
-                     OM_PV = 12.70,    # O&M for PV ($/kw)
-                     OM_WIND = 18.65,    # O&M for wind ($/kw)
+                     OM_PV = 22.85,#12.70,    # O&M for PV ($/kw)
+                     OM_WIND = 33.56,#18.65,    # O&M for wind ($/kw)
                      OM_UG = 1.03,        # O&M for underground storage ($/kg)
                      DIS_RATE = 0.06        #discount rate 6%
                      )
@@ -89,8 +89,8 @@ def optimisation():
     #Choose the location
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
-    df = pd.read_csv(os.getcwd()+os.sep+'input_usg.txt')
-    load = 0.2115#2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
+    df = pd.read_csv(os.getcwd()+os.sep+'input_Pilbara_sep.txt')
+    load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
     unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
     import multiprocessing as mp
@@ -101,7 +101,7 @@ def optimisation():
     
     
     # we set Wind locations the same as PV for now
-    Wind_location = PV_location = df['#Name'].values[:-1]
+    Wind_location = PV_location = df['#Name'].values[:-2]
     
     multiyear=False
     if multiyear == True:
@@ -150,7 +150,7 @@ def optimisation():
                     coor_PV_y = Coor_PV_y
                     coor_wind_x = Coor_wind_x
                     coor_wind_y = Coor_wind_y
-                    Area_list = df['Area'].values[:-1].tolist()
+                    Area_list = df['Area'].values[:-2].tolist()
                     
                 print ('Started CF: %s Case: %s %s'%(CF,pv_location,el_location))
                 
@@ -169,9 +169,15 @@ def optimisation():
                 # pipe cost
                 user_x = df[df['#Name']=='User']['Lat'].values[0]
                 user_y = df[df['#Name']=='User']['Long'].values[0]
+                storage_x = df[df['#Name']=='storage']['Lat'].values[0]
+                storage_y = df[df['#Name']=='storage']['Long'].values[0]
+                
                 C_pipe = np.sqrt(abs((user_x-coor_elx)**2+(user_y-coor_ely)**2))*km_per_degree*unit_cost_pipe.get(load)*0.67
                 if el_location in Pipe_buffer:
                     C_pipe = C_pipe*0.15 # USD
+                    
+                if storage_x!=0:
+                    C_pipe += np.sqrt(abs((storage_x-coor_elx)**2+(storage_y-coor_ely)**2))*km_per_degree*unit_cost_pipe.get(load)*0.67
                 
                 # storage: Lined Rock, Salt Cavern, No_UG, Depleted gas
                 storage_type = 'Salt Cavern'

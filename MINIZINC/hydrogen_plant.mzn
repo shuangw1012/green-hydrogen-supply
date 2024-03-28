@@ -35,6 +35,7 @@ float: OM_UG;     % O&M for underground hydrogen storage
 float: crf; %capital recovery factor
 float: H_total; %annual hydrogen generation kg/year
 float: C_pipe; % pipe transportation cost (USD)
+float: pv_max_min = 0;     %wind farm rated power (kW)
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
 array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
@@ -47,6 +48,7 @@ array[N_PV] of float: Area;    %Available land area
 
 % === VARIABLES ===
 var float: wind_max;     %wind farm rated power (kW)
+%float: wind_max=0;     %wind farm rated power (kW)
 var float: pv_max;     %wind farm rated power (kW)
 var float: el_max;     %electrolyser rated power (kW)
 var float: ug_storage_capa;    %capacity of hydrogen storage cavern (kg of H2)
@@ -106,7 +108,7 @@ constraint ug_storage_capa <= UG_STORAGE_CAPA_MAX;
 constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
 constraint bat_e_capa >= 0;
 constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
-
+constraint pv_max>=pv_max_min;
 constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
 constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
 constraint forall(  j in N_wind  )(  wind_max_array[j]/1e3/5.2 + pv_max_array[j]/1e3/29.5 <= Area[j] );
