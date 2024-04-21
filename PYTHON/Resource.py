@@ -83,6 +83,24 @@ def CF_output(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
     df = pd.DataFrame(CF, columns=['Location', 'Lat', 'Long', 'Solar CF', 'Wind CF'])
     df.to_csv(os.getcwd() + os.sep + 'CF_output.txt', sep=',', index=False, header=True)
 
+def CF_output_muiti(PV_location_g,Coor_PV_x_g,Coor_PV_y_g):
+    startyear = 2011
+    endyear = 2020
+    Year = np.linspace(startyear,endyear,endyear-startyear+1,dtype = int)
+    
+    CF = np.array([])
+    for year in Year:
+        for j in range(len(PV_location_g)):
+            loc = PV_location_g[j] + '_' + str(year)
+            print 
+            print (loc)
+            update_resource_data(loc)
+            #solar_output(loc)
+            CF = np.append(CF,[loc,Coor_PV_x_g[j],Coor_PV_y_g[j],round(solar_output(loc),3),round(wind_output(loc),3)])
+    CF = CF.reshape(int(len(CF)/5),5)
+    df = pd.DataFrame(CF, columns=['Location', 'Lat', 'Long', 'Solar CF', 'Wind CF'])
+    df.to_csv(os.getcwd() + os.sep + 'CF_output.txt', sep=',', index=False, header=True)
+
 def obtain_CC():
     weather_data_folder = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'
     location1 = 'KI253'
@@ -117,9 +135,9 @@ if __name__=='__main__':
     print (wind_cf,solar_cf,cv)
     '''
     
-    df = pd.read_csv(os.getcwd()+os.sep+'input_Pilbara_sep.txt')
+    df = pd.read_csv(os.getcwd()+os.sep+'Input_tas.txt')
     Wind_location = PV_location = df['#Name'].values
     Coor_wind_x = Coor_PV_x = df['Lat'].values
     Coor_wind_y = Coor_PV_y = df['Long'].values
-    CF_output(PV_location,Coor_PV_x,Coor_PV_y)
-    
+    #CF_output(PV_location,Coor_PV_x,Coor_PV_y)
+    CF_output_muiti(PV_location,Coor_PV_x,Coor_PV_y)

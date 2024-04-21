@@ -9,6 +9,8 @@ set of int: tsamp = 1..N+1;    %number of sample points
 set of int: N_PV = 1..n_PV;    %number of PV farms
 set of int: N_wind = 1..n_wind;    %number of wind farms
 set of int: N_project = 1..n_project;    %number of project year 
+set of int: N_el = 1..n_PV+1;
+set of int: N_cap = 1..5;
 
 float: DT;      %time difference between sample points (also, interval length) (s)
 float: EL_ETA;  %conversion efficiency of the electrolyser (kgH/s/kW)
@@ -29,22 +31,31 @@ float: WIND_REF;    %power capacity of the reference wind plant (kW)
 
 float: DIS_RATE;    %discount rate 8%
 float: OM_EL;    % O&M for electrolyzer ($/kw)
-float: OM_PV;    % O&M for PV ($/kw)
+float: OM_PV;    % O&M for PV ($/kN_elw)
 float: OM_WIND;    % O&M for wind ($/kw)
 float: OM_UG;     % O&M for underground hydrogen storage
 float: crf; %capital recovery factor
 float: H_total; %annual hydrogen generation kg/year
 float: C_pipe; % pipe transportation cost (USD)
 float: pv_max_min = 0;     %wind farm rated power (kW)
+float: baseCostPV = 2091;  % Base transmission cost per unit capacity per unit distance for PV
+float: baseCostwind = 1104;  % Base transmission cost per unit capacity per unit distance for wind
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
 array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
 array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference wind plant (kW)
 
-array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
-array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
-array[N_PV] of float: Area;    %Available land area
+array[N_cap] of float: capexValues; 
+array[N_cap] of float: capacityLevels;
+array[1..4] of float: slopesTrans;
+array[1..4] of float: interceptsTrans;
+array[N_PV] of var float: newcapexTrans;
 
+%array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
+%array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
+array[N_PV] of float: Area;    %Available land area
+array[N_PV, N_el] of float: distancePV;  % Distance from each PV farm to each location
+array[N_wind, N_el] of float: distanceWind;  % Distance from each wind farm to each location
 
 % === VARIABLES ===
 var float: wind_max;     %wind farm rated power (kW)
@@ -56,7 +67,17 @@ var float: pipe_storage_capa;  %capacity of hydrogen storage in the pipeline (kg
 var float: bat_e_capa;    %energy capacity of the electrochemical battery (kWh)
 var float: bat_p_max;    %power capacity of the electrochemical battery (kW)
 var float: C_trans;    %transmission cost
+var float: capex;
+var float: lcoh; % LCOH in USD/kg
+var float: FOM_PV; %USD/kW.year
+var float: FOM_WIND; %USD/kW.year
+var float: FOM_EL; %USD/kW.year
+var float: FOM_UG; %USD/kg.year
+var float: OF;
 
+array[N_el] of var bool: electrolyserAt;  % Binary variables for electrolyser locations
+array[N_PV, N_el] of var float: transCostPV;  % Auxiliary variable for PV cost calculation
+array[N_wind, N_el] of var float: transCostWind;  % Auxiliary variable for wind cost calculation
 array[N_PV] of var float: pv_max_array;    %an array of PV plant rated power values: nodes number of (kW)
 array[N_wind] of var float: wind_max_array;    %an array of PV plant rated power values: nodes number of (kW)
 array[tint] of var float: pv_pout;    %power out of PV plant (kW)
@@ -79,14 +100,6 @@ array[tsamp] of var float: res_h_level;    %reserved hydrogen for load shut down
 array[tsamp] of var float: bat_e;  %electrical energy stored in the battery (kWh)
 
 
-var float: capex;
-var float: lcoh; % LCOH in USD/kg
-var float: FOM_PV; %USD/kW.year
-var float: FOM_WIND; %USD/kW.year
-var float: FOM_EL; %USD/kW.year
-var float: FOM_UG; %USD/kg.year
-var float: OF;
-
 OF = (C_PV + OM_PV/crf) * pv_max + (C_WIND + OM_WIND/crf) * wind_max + (C_EL + OM_EL/crf) * el_max + (C_UG_STORAGE + OM_UG/crf) * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans + C_pipe;
 
 %=== CONSTRAINTS ===
@@ -107,7 +120,37 @@ constraint ug_storage_capa >= 0;
 constraint ug_storage_capa <= UG_STORAGE_CAPA_MAX;
 constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
 constraint bat_e_capa >= 0;
-constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
+
+%constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
+constraint C_trans = sum(j in N_PV, k in N_el) (baseCostPV * distancePV[j, k] * pv_max_array[j] * electrolyserAt[k])+sum(j in N_wind, k in N_el) (baseCostwind * distanceWind[j, k] * wind_max_array[j] * electrolyserAt[k]) ;
+
+%constraint forall(j in N_PV) (
+%    (pv_max_array[j] >= capacityLevels[1] /\ pv_max_array[j] < capacityLevels[2]) -> 
+%        (newcapexTrans[j] = slopesTrans[1] * pv_max_array[j] + interceptsTrans[1])
+%);
+%constraint forall(j in N_PV) (
+%    (pv_max_array[j] >= capacityLevels[2] /\ pv_max_array[j] < capacityLevels[3]) -> 
+%        (newcapexTrans[j] = slopesTrans[2] * pv_max_array[j] + interceptsTrans[2])
+%);
+%constraint forall(j in N_PV) (
+%    (pv_max_array[j] >= capacityLevels[3] /\ pv_max_array[j] < capacityLevels[4]) -> 
+%        (newcapexTrans[j] = slopesTrans[3] * pv_max_array[j] + interceptsTrans[3])
+%);
+%constraint forall(j in N_PV) (
+%    (pv_max_array[j] >= capacityLevels[4] /\ pv_max_array[j] < capacityLevels[5]) -> 
+%        (newcapexTrans[j] = slopesTrans[4] * pv_max_array[j] + interceptsTrans[4])
+%);
+%constraint forall(j in N_PV) (
+%    (pv_max_array[j] >= capacityLevels[5]) -> 
+%        (newcapexTrans[j] = capexValues[5])
+%);
+
+
+%constraint forall(  j in N_PV) (newcapexTrans [j] >=0);
+
+%constraint C_trans = sum(j in N_PV, k in N_el) (newcapexTrans [j] * distancePV[j, k]* electrolyserAt[k]);
+
+constraint sum(electrolyserAt) = 1;
 constraint pv_max>=pv_max_min;
 constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
 constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
@@ -201,5 +244,7 @@ output  ["!"] ++
         ["FOM_EL="] ++ [show(FOM_EL)] ++ [";"] ++
         ["FOM_UG="] ++ [show(FOM_UG)] ++ [";"] ++
         ["H_total="] ++ [show(H_total)] ++ [";"] ++
+        ["El_location="] ++ [show(k) | k in N_el where fix(electrolyserAt[k]) = true] ++ [";"] ++
+	      %["El_location: "] ++ [show(electrolyserAt)] ++ [";"] ++
         ["!"];
 

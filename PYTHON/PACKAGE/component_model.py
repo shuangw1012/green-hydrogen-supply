@@ -307,7 +307,7 @@ def WindSource_windlab(Location):
     text_file = open(path + os.sep + "WindSource.srw", "w") # I got an error if use ./csv format for wind source
     text_file.write(data_text)
     text_file.close()
-    #print("Wind source data file was generated from Windlab database!")    
+    #print("Wind source data file was generated from Windlab database!")
 
  #################################################################
 def speed(Z,Z_anem,U_anem):

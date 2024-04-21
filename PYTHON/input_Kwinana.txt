@@ -1,0 +1,4 @@
+#Name,Lat,Long,Area,Within_buffer
+HL34,-32.54,116.02,140,FALSE
+User,-32.65,116.13,,FALSE
+storage,0,0,,FALSE

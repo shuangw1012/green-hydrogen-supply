@@ -8,20 +8,35 @@ from projdirs import optdir
 import numpy as np
 from PACKAGE.component_model import pv_gen, wind_gen,SolarResource, WindSource,WindSource_windlab
 import os
-
+from scipy.interpolate import interp2d
 
 def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_PV, C_WIND, C_EL, C_UG_STORAGE,UG_STORAGE_CAPA_MAX,
                   C_PIPE_STORAGE,PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
                   C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG,DIS_RATE,
                   CF, PV_REF,WIND_REF,
-                  LOAD, C_PV_t, C_wind_t, C_pipe,
-                  PV_REF_POUT,WIND_REF_POUT,Area):
+                  LOAD, C_pipe,
+                  PV_REF_POUT,WIND_REF_POUT,Area,distancePV,distanceWind):
     # pdb.set_trace()    
     n_project = 25
     crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
     # pdb.set_trace()    
     H_total = (CF/100)*sum(LOAD)*DT*3600
+    
+    capacityLevels = [0,116000, 579000, 2894000, 5787000]
+    capexValues = [0,826695,1211205,2018674,2556988]
+    
+    # Calculate slopes for each segment
+    slopesTrans = []
+    for i in range(len(capacityLevels) - 1):
+        slope = (capexValues[i + 1] - capexValues[i]) / (capacityLevels[i + 1] - capacityLevels[i])
+        slopesTrans.append(slope)
+    
+    # Calculate intercepts for each segment
+    interceptsTrans = []
+    for i in range(len(slopesTrans)):
+        intercept = capexValues[i] - slopesTrans[i] * capacityLevels[i]
+        interceptsTrans.append(intercept)
     
     string = """
     N = %i;
@@ -43,7 +58,7 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     
     C_BAT_ENERGY = %.2f;   %% unit cost of electrochemical battery energy ($/kWh)
     C_BAT_POWER = %.2f;   %% unit cost of electrochemical battery power ($/kWh)
-    
+
     OM_PV = %.2f;    %% Annual O&M cost of PV ($/kW)
     OM_WIND = %.2f;  %% Annual O&M cost of wind ($/kW)
     OM_EL = %.2f;    %% Annual O&M cost of electrolyser ($/kW)
@@ -57,12 +72,6 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     
     %% load timeseries (kgH/s)                             
     LOAD = %s;
-    
-    %% Transmission cost (USD/kW)                             
-    C_PV_t = %s;
-    
-    %% Transmission cost (USD/kW)                             
-    C_wind_t = %s;
     
     %% Total pipe cost (USD/kW)                             
     C_pipe = %s;
@@ -79,11 +88,25 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     %% Available land area (km2)                             
     Area = %s;
     
+     
+    %% Capacity levels (kW)
+    capacityLevels = %s;
+    
+    %% Unit distance capex (USD/km)
+    capexValues = %s;
+    
+    %% slopes for transmission cost
+    slopesTrans = %s;
+    
+    %% intercepts for transmission cost
+    interceptsTrans = %s;
+    
     """ %(len(LOAD), len(PV_REF_POUT), len(WIND_REF_POUT), DT, int(n_project),EL_ETA, BAT_ETA_in, BAT_ETA_out,
       C_PV, C_WIND, C_EL, C_UG_STORAGE, UG_STORAGE_CAPA_MAX, C_PIPE_STORAGE,
       PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
       C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG, (1-CF/100)*sum(LOAD)*DT*3600, PV_REF, WIND_REF,
-      str(LOAD), str(C_PV_t), str(C_wind_t),C_pipe,DIS_RATE,crf,H_total,str(Area))
+      str(LOAD), C_pipe,DIS_RATE,crf,H_total,str(Area),str(capacityLevels),str(capexValues),
+      str(slopesTrans),str(interceptsTrans))
     
     with open(optdir + "hydrogen_plant_data_%s.dzn"%(str(CF)), "w") as file:
         file.write(string)
@@ -127,6 +150,43 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
 
         file.write(" |];")
         
+        file.write(" \n")
+        file.write(" \n")
+        file.write("distancePV= [")
+        
+        # Loop through the rows of the 2D array
+        for i,row in enumerate(distancePV):
+            file.write("|")
+            # Loop through the elements of each row
+            for j, element in enumerate(row):
+                file.write(str(element))
+                if j < len(row) - 1 or i!=len(distancePV)-1:
+                    file.write(", ")
+            
+            # Close the row
+            if i!=len(distancePV)-1:
+                file.write(" \n")
+        file.write(" |];")
+        
+        file.write(" \n")
+        file.write(" \n")
+        file.write("distanceWind= [")
+        # Loop through the rows of the 2D array
+        for i,row in enumerate(distanceWind):
+            file.write("|")
+            # Loop through the elements of each row
+            for j, element in enumerate(row):
+                file.write(str(element))
+                if j < len(row) - 1 or i!=len(distanceWind)-1:
+                    file.write(", ")
+            
+            # Close the row
+            if i!=len(distanceWind)-1:
+                file.write(" \n")
+
+        file.write(" |];")
+        
+        
 def Minizinc(simparams):
     """
     Parameters
@@ -157,6 +217,7 @@ def Minizinc(simparams):
                                optdir + minizinc_data_file_name]))
     
     output = output.replace('[','').replace(']','').split('!')
+    print (output)
     for string in output:
         if 'CAPEX' in string:
             results = string.split(';')
@@ -176,7 +237,7 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,C_wind_t,C_pipe,Area):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_pipe,Area,distancePV,distanceWind):
     simparams.update(CF = cf)
     
     PV_pv_ref_pout = np.array([])
@@ -214,12 +275,12 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_PV_t,
                      C_UG_STORAGE = Cost_hs(initial_ug_capa, storage_type),
                      LOAD = [load for i in range(len(pv_ref_pout))], #[kgH2/s] load profile timeseries
                      CF = cf,           #capacity factor
-                     C_PV_t = C_PV_t,
-                     C_wind_t = C_wind_t,
                      C_pipe = C_pipe,
                      PV_REF_POUT = PV_pv_ref_pout,
                      WIND_REF_POUT = Wind_ref_pout,
-                     Area = Area
+                     Area = Area,
+                     distancePV = distancePV,
+                     distanceWind = distanceWind
                      )
 
     make_dzn_file(**simparams)
@@ -272,7 +333,7 @@ def Cost_hs(size,storage_type):
         else:
             cost = 10 ** (-0.0285*x + 2.7853)
     elif storage_type == 'Depleted gas':
-        cost = 2.72*0.67
+        cost = 2.72*0.746
         print ('Depleted gas' + str(cost))
     elif storage_type == 'No_UG':
         cost = 516

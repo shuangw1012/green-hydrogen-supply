@@ -32,8 +32,8 @@ def optimisation():
     simparams = dict(EL_ETA = 0.70,       #efficiency of electrolyser
                      BAT_ETA_in = 0.95,   #charging efficiency of battery
                      BAT_ETA_out = 0.95,  #discharg efficiency of battery
-                     C_PV = 1461,#1122.7,          #[USD/kW] unit cost of PV
-                     C_WIND = 1894,#1455,           #[USD/kW] unit cost of Wind
+                     C_PV = 1122.7, #1461,#         #[USD/kW] unit cost of PV
+                     C_WIND = 1455,#1894,#           #[USD/kW] unit cost of Wind
                      C_EL = 1067,          #[USD/W] unit cost of electrolyser
                      UG_STORAGE_CAPA_MAX = 1e10,   #maximum available salt caevern size (kg of H2)
                      C_PIPE_STORAGE = 516, #unit cost of line packing (USD/kg of H2)
@@ -89,7 +89,7 @@ def optimisation():
     #Choose the location
     
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
-    df = pd.read_csv(os.getcwd()+os.sep+'input_Pilbara_sep.txt')
+    df = pd.read_csv(os.getcwd()+os.sep+'input_Kwinana.txt')
     load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
     unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
@@ -101,93 +101,53 @@ def optimisation():
     
     
     # we set Wind locations the same as PV for now
-    Wind_location = PV_location = df['#Name'].values[:-2]
-    
-    multiyear=False
-    if multiyear == True:
-        Wind_location = np.char.add(Wind_location.astype(str), '_multi')
-        PV_location = np.char.add(PV_location.astype(str), '_multi')
-        num_year = 5
-    else:
-        num_year = 1
-    Coor_wind_x = Coor_PV_x = df['Lat'].values[:-1]
-    Coor_wind_y = Coor_PV_y = df['Long'].values[:-1]
-    
-    # update resource data
-    #Resource_data(PV_location,Coor_PV_x,Coor_PV_y)
-    
-    
-    # get the locations within pipe buffer
+    wind_location = pv_location = df['#Name'].values[:-2]
+    coor_wind_x = coor_PV_x = df['Lat'].values[:-2]
+    coor_wind_y = coor_PV_y = df['Long'].values[:-2]
+    el_location = df['#Name'].values[:-1]
+    coor_el_x = df['Lat'].values[:-1]
+    coor_el_y = df['Long'].values[:-1]
     Pipe_buffer = df[df['Within_buffer']==True]['#Name'].values
+    Area_list = df['Area'].values[:-2].tolist()
     
-    # get the locations as candidate electrolyser
-    El_location = df[df['Electrolyser']==True]['#Name'].values
-    
-    for CF in CF_group:        
-        # adding a loop for different El locations
-        for e in range(len(El_location)):
-            el_location = El_location[e]
-            coor_elx = df[df['#Name']==el_location]['Lat'].values[0]
-            coor_ely = df[df['#Name']==el_location]['Long'].values[0]
-            for j in range(len(PV_location)+1):
-                if j < len(PV_location):
-                    #if PV_location[j] != el_location:
-                    continue
-                    pv_location = [PV_location[j]]
-                    wind_location = [Wind_location[j]]
-                    coor_PV_x = coor_wind_x = [Coor_PV_x[j]]
-                    coor_PV_y = [Coor_PV_y[j]]
-                    coor_wind_x = [Coor_wind_x[j]]
-                    coor_wind_y = [Coor_wind_y[j]]
-                    Area_list = [1e6] # assume unlimited capacity if one location chosen
-                    
-                if j == len(PV_location):
-                    #continue
-                    pv_location = PV_location
-                    wind_location = Wind_location
-                    #pv_location=wind_location=
-                    coor_PV_x = Coor_PV_x
-                    coor_PV_y = Coor_PV_y
-                    coor_wind_x = Coor_wind_x
-                    coor_wind_y = Coor_wind_y
-                    Area_list = df['Area'].values[:-2].tolist()
-                    
-                print ('Started CF: %s Case: %s %s'%(CF,pv_location,el_location))
-                
-                # transmission cost unit capacity
-                km_per_degree = 111.32 # km/deg
-                detour = 1.2 # detour factor
-                C_PV_t = np.zeros(len(pv_location))
-                C_wind_t = np.zeros(len(wind_location))
-                for i in range(len(pv_location)):
-                    C_PV_t[i] = np.sqrt(abs((coor_PV_x[i]-coor_elx)**2+(coor_PV_y[i]-coor_ely)**2))*km_per_degree*5.496*0.67*detour
-                #for i in range(len(wind_location)):
-                    C_wind_t[i] = np.sqrt(abs((coor_wind_x[i]-coor_elx)**2+(coor_wind_y[i]-coor_ely)**2))*km_per_degree*5.496*0.67*detour
-                C_PV_t = C_PV_t.tolist()
-                C_wind_t = C_wind_t.tolist()
-                      
-                # pipe cost
-                user_x = df[df['#Name']=='User']['Lat'].values[0]
-                user_y = df[df['#Name']=='User']['Long'].values[0]
-                storage_x = df[df['#Name']=='storage']['Lat'].values[0]
-                storage_y = df[df['#Name']=='storage']['Long'].values[0]
-                
-                C_pipe = np.sqrt(abs((user_x-coor_elx)**2+(user_y-coor_ely)**2))*km_per_degree*unit_cost_pipe.get(load)*0.67
-                if el_location in Pipe_buffer:
-                    C_pipe = C_pipe*0.15 # USD
-                    
-                if storage_x!=0:
-                    C_pipe += np.sqrt(abs((storage_x-coor_elx)**2+(storage_y-coor_ely)**2))*km_per_degree*unit_cost_pipe.get(load)*0.67
-                
-                # storage: Lined Rock, Salt Cavern, No_UG, Depleted gas
-                storage_type = 'Salt Cavern'
-                feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
-                                              C_PV_t,C_wind_t,C_pipe,Area_list)
-                
-                feedback['El']=El_location[e] # add el location to the results
-                
-                output.append(feedback)
-                Simparams.append(simparams)
+    for CF in CF_group:             
+        print ('Started CF: %s Case: %s'%(CF,pv_location))
+        
+        # transmission cost unit capacity
+        km_per_degree = 111.32 # km/deg
+        detour = 1.2 # detour factor
+        
+        # transmission cost
+        coor_PV_x = coor_PV_x[:, np.newaxis]
+        coor_PV_y = coor_PV_y[:, np.newaxis] 
+        coor_wind_x = coor_wind_x[:, np.newaxis]
+        coor_wind_y = coor_wind_y[:, np.newaxis]
+        
+        distancePV = np.sqrt((coor_PV_x - coor_el_x)**2 + (coor_PV_y - coor_el_y)**2)*km_per_degree*detour
+        distanceWind = np.sqrt((coor_wind_x - coor_el_x)**2 + (coor_wind_y - coor_el_y)**2)*km_per_degree*detour
+        
+        # pipe cost
+        user_x = df[df['#Name']=='User']['Lat'].values[0]
+        user_y = df[df['#Name']=='User']['Long'].values[0]
+        storage_x = df[df['#Name']=='storage']['Lat'].values[0]
+        storage_y = df[df['#Name']=='storage']['Long'].values[0]
+        
+        distanceUser = np.sqrt((user_x - coor_el_x)**2 + (user_y - coor_el_y)**2)*km_per_degree*detour
+        if storage_x!=0:
+            distanceStg = np.sqrt((storage_x - coor_el_x)**2 + (storage_y - coor_el_y)**2)*km_per_degree*detour
+        else:
+            distanceStg = np.sqrt((storage_x - coor_el_x)**2 + (storage_y - coor_el_y)**2)*km_per_degree*detour*0
+        
+        C_pipe_stg = unit_cost_pipe.get(load)*0.746
+        C_pipe_unit = 0
+        # storage: Lined Rock, Salt Cavern, No_UG, Depleted gas
+        storage_type = 'Lined Rock'
+        feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
+                                      C_pipe_unit,Area_list,distancePV,distanceWind)
+        
+        
+        output.append(feedback)
+        Simparams.append(simparams)
     
     data_list = []
     parent_directory = os.path.dirname(os.getcwd())
@@ -199,7 +159,7 @@ def optimisation():
         
         row_data = {
             'cf': simparams['CF'],
-            'El': results['El'],
+            'El': el_location[int(results['El_location'][0])-1], # Minizinc starts from 1
             'capex[USD]': results['CAPEX'][0],
             'lcoh[USD/kg]': results['lcoh'][0],
             'FOM_PV[USD]':results['FOM_PV'][0],
@@ -229,7 +189,8 @@ def optimisation():
         n_project = 25
         DIS_RATE = 0.06
         crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
-        H_total = results['H_total'][0]/num_year
+        H_total = results['H_total'][0]
+        row_data['LCOH-PV']=(crf*results['pv_max'][0] * simparams['C_PV']+results['FOM_PV'][0])/H_total
         row_data['LCOH-wind']=(crf*results['wind_max'][0] * simparams['C_WIND']+results['FOM_WIND'][0])/H_total
         row_data['LCOH-el']=(crf*results['el_max'][0] * simparams['C_EL']+results['FOM_EL'][0])/H_total
         row_data['LCOH-UG']=(crf*results['ug_storage_capa'][0] * simparams['C_UG_STORAGE']+results['FOM_UG'][0])/H_total
@@ -239,11 +200,11 @@ def optimisation():
         
         if len(results['pv_max_array'])>1:
             for j in range(len(results['pv_max_array'])):
-                row_data['pv_capacity_%s[kW]'%PV_location[j]] = results['pv_max_array'][j]
-            for j in range(len(results['pv_max_array'])):
-                row_data['wind_capacity_%s[kW]'%PV_location[j]] = results['wind_max_array'][j]
+                row_data['pv_capacity_%s[kW]'%pv_location[j]] = results['pv_max_array'][j]
+            for j in range(len(results['wind_max_array'])):
+                row_data['wind_capacity_%s[kW]'%wind_location[j]] = results['wind_max_array'][j]
         data_list.append(row_data)
-        
+        '''
         # output series
         df = pd.DataFrame({'pipe_storage_level': results['pipe_storage_level'][:-1],
                            'ug_storage_level': results['ug_storage_level'][:-1],
@@ -261,7 +222,7 @@ def optimisation():
                            'LOAD':results['LOAD']})
         
         df.to_csv(path_to_file+'output-%s-%s.csv'%(results['El'],storage_type), index=False)
-        
+        '''
     # Convert list of dictionaries to DataFrame
     RESULTS = pd.DataFrame(data_list)
     RESULTS.to_csv(path_to_file+'results_2020.csv', index=False)
