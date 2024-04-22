@@ -91,7 +91,7 @@ def optimisation():
     #PV_location_g,Coor_PV_x_g,Coor_PV_y_g,El_location_g,Coor_elx_x_g,Coor_elx_y_g,user_x,user_y,Pipe_buffer,Area = load_txt()
     df = pd.read_csv(os.getcwd()+os.sep+'input_Kwinana.txt')
     load = 2.115 #0.2115, 0.705, 2.115, 7.0501, 21.1506
-    unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
+    #unit_cost_pipe = {0.2115:422404.1475, 0.705:422404.1475, 2.115:589346.11375, 7.0501:867582.7165, 21.1506:2066778.397}
     
     import multiprocessing as mp
     
@@ -133,18 +133,18 @@ def optimisation():
         storage_y = df[df['#Name']=='storage']['Long'].values[0]
         
         distanceUser = np.sqrt((user_x - coor_el_x)**2 + (user_y - coor_el_y)**2)*km_per_degree*detour
+        
         if storage_x!=0:
             distanceStg = np.sqrt((storage_x - coor_el_x)**2 + (storage_y - coor_el_y)**2)*km_per_degree*detour
         else:
             distanceStg = np.sqrt((storage_x - coor_el_x)**2 + (storage_y - coor_el_y)**2)*km_per_degree*detour*0
-        
-        C_pipe_stg = unit_cost_pipe.get(load)*0.746
-        C_pipe_unit = 0
+        print (distanceStg)
+        #C_pipe_stg = unit_cost_pipe.get(load)*0.746
+        #C_pipe_unit = 0
         # storage: Lined Rock, Salt Cavern, No_UG, Depleted gas
         storage_type = 'Lined Rock'
         feedback,simparams = Optimise(load, CF, storage_type, simparams,pv_location,wind_location,
-                                      C_pipe_unit,Area_list,distancePV,distanceWind)
-        
+                                      Area_list,distancePV,distanceWind,distanceUser,distanceStg)
         
         output.append(feedback)
         Simparams.append(simparams)

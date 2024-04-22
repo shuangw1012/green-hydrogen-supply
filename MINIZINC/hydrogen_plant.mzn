@@ -1,3 +1,5 @@
+include "piecewise_linear.mzn";
+
 % Use this editor as a MiniZinc scratch book
 int: N;
 int: n_PV;
@@ -36,26 +38,27 @@ float: OM_WIND;    % O&M for wind ($/kw)
 float: OM_UG;     % O&M for underground hydrogen storage
 float: crf; %capital recovery factor
 float: H_total; %annual hydrogen generation kg/year
-float: C_pipe; % pipe transportation cost (USD)
 float: pv_max_min = 0;     %wind farm rated power (kW)
-float: baseCostPV = 2091;  % Base transmission cost per unit capacity per unit distance for PV
-float: baseCostwind = 1104;  % Base transmission cost per unit capacity per unit distance for wind
+%float: baseCostPV = 2091;  % Base transmission cost per unit capacity per unit distance for PV
+%float: baseCostwind = 1104;  % Base transmission cost per unit capacity per unit distance for wind
 
 array[tint] of float: LOAD; %load timeseries (kg of H per hour)
 array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV plant (kW)
 array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference wind plant (kW)
 
-array[N_cap] of float: capexValues; 
+% for transmission cost
+array[N_cap] of float: TranscapexValues; 
+array[N_cap] of float: PipecapexValues; 
 array[N_cap] of float: capacityLevels;
-array[1..4] of float: slopesTrans;
-array[1..4] of float: interceptsTrans;
-array[N_PV] of var float: newcapexTrans;
+array[N_PV] of var float: newPVcapexTrans;
+array[N_wind] of var float: newWindcapexTrans;
 
-%array[N_PV] of float: C_PV_t;  %tranmission cost for PV (/kW)
-%array[N_wind] of float: C_wind_t;  %tranmission cost for wind(/kW)
 array[N_PV] of float: Area;    %Available land area
-array[N_PV, N_el] of float: distancePV;  % Distance from each PV farm to each location
-array[N_wind, N_el] of float: distanceWind;  % Distance from each wind farm to each location
+array[N_PV, N_el] of float: distancePV;  % Distance from each PV farm to each electrolyser location
+array[N_wind, N_el] of float: distanceWind;  % Distance from each wind farm to each electrolyser location
+
+array[N_el] of float: distanceUser;  % Distance from end user farm to each electrolyser location
+array[N_el] of float: distanceStg;  % Distance from storage to each electrolyser location
 
 % === VARIABLES ===
 var float: wind_max;     %wind farm rated power (kW)
@@ -67,6 +70,7 @@ var float: pipe_storage_capa;  %capacity of hydrogen storage in the pipeline (kg
 var float: bat_e_capa;    %energy capacity of the electrochemical battery (kWh)
 var float: bat_p_max;    %power capacity of the electrochemical battery (kW)
 var float: C_trans;    %transmission cost
+var float: C_pipe; % pipe transportation cost (USD)
 var float: capex;
 var float: lcoh; % LCOH in USD/kg
 var float: FOM_PV; %USD/kW.year
@@ -121,38 +125,24 @@ constraint ug_storage_capa <= UG_STORAGE_CAPA_MAX;
 constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
 constraint bat_e_capa >= 0;
 
-%constraint C_trans = sum(j in N_PV)(C_PV_t[j]*pv_max_array[j]) + sum(j in N_wind)(C_wind_t[j]*wind_max_array[j]);
-constraint C_trans = sum(j in N_PV, k in N_el) (baseCostPV * distancePV[j, k] * pv_max_array[j] * electrolyserAt[k])+sum(j in N_wind, k in N_el) (baseCostwind * distanceWind[j, k] * wind_max_array[j] * electrolyserAt[k]) ;
+constraint forall(j in N_PV) (
+newPVcapexTrans[j] = piecewise_linear(pv_max_array[j],capacityLevels,TranscapexValues));
+           
+constraint forall(  j in N_PV) (newPVcapexTrans [j] >=0);
 
-%constraint forall(j in N_PV) (
-%    (pv_max_array[j] >= capacityLevels[1] /\ pv_max_array[j] < capacityLevels[2]) -> 
-%        (newcapexTrans[j] = slopesTrans[1] * pv_max_array[j] + interceptsTrans[1])
-%);
-%constraint forall(j in N_PV) (
-%    (pv_max_array[j] >= capacityLevels[2] /\ pv_max_array[j] < capacityLevels[3]) -> 
-%        (newcapexTrans[j] = slopesTrans[2] * pv_max_array[j] + interceptsTrans[2])
-%);
-%constraint forall(j in N_PV) (
-%    (pv_max_array[j] >= capacityLevels[3] /\ pv_max_array[j] < capacityLevels[4]) -> 
-%        (newcapexTrans[j] = slopesTrans[3] * pv_max_array[j] + interceptsTrans[3])
-%);
-%constraint forall(j in N_PV) (
-%    (pv_max_array[j] >= capacityLevels[4] /\ pv_max_array[j] < capacityLevels[5]) -> 
-%        (newcapexTrans[j] = slopesTrans[4] * pv_max_array[j] + interceptsTrans[4])
-%);
-%constraint forall(j in N_PV) (
-%    (pv_max_array[j] >= capacityLevels[5]) -> 
-%        (newcapexTrans[j] = capexValues[5])
-%);
+constraint forall(j in N_wind) (
+newWindcapexTrans[j] = piecewise_linear(wind_max_array[j],capacityLevels,TranscapexValues));
+           
+constraint forall(  j in N_PV) (newWindcapexTrans [j] >=0);
 
+constraint C_trans = sum(j in N_PV, k in N_el) (newPVcapexTrans [j] * distancePV[j, k]* electrolyserAt[k])+sum(j in N_wind, k in N_el) (newWindcapexTrans [j] * distanceWind[j, k]* electrolyserAt[k]);
 
-%constraint forall(  j in N_PV) (newcapexTrans [j] >=0);
-
-%constraint C_trans = sum(j in N_PV, k in N_el) (newcapexTrans [j] * distancePV[j, k]* electrolyserAt[k]);
+constraint C_pipe = sum(k in N_el) (piecewise_linear(el_max*EL_ETA,capacityLevels,PipecapexValues) * distanceStg[k]* electrolyserAt[k])+sum(k in N_el) (piecewise_linear(LOAD[1] * 39.4 *3600,capacityLevels,PipecapexValues) * distanceUser[k]* electrolyserAt[k]);
 
 constraint sum(electrolyserAt) = 1;
 constraint pv_max>=pv_max_min;
 constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
+constraint forall(  j in N_PV  )(  pv_max_array[j] <=1e7 );
 constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
 constraint forall(  j in N_wind  )(  wind_max_array[j]/1e3/5.2 + pv_max_array[j]/1e3/29.5 <= Area[j] );
 constraint forall(  i in tint  )(  pv_pout[i] = sum(j in N_PV)(pv_max_array[j]/PV_REF * PV_REF_POUT[j,i]) );
@@ -245,6 +235,7 @@ output  ["!"] ++
         ["FOM_UG="] ++ [show(FOM_UG)] ++ [";"] ++
         ["H_total="] ++ [show(H_total)] ++ [";"] ++
         ["El_location="] ++ [show(k) | k in N_el where fix(electrolyserAt[k]) = true] ++ [";"] ++
+        ["newWindcapexTrans="] ++ [show(newWindcapexTrans)] ++ [";"] ++
 	      %["El_location: "] ++ [show(electrolyserAt)] ++ [";"] ++
         ["!"];
 

@@ -15,8 +15,8 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_PIPE_STORAGE,PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
                   C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG,DIS_RATE,
                   CF, PV_REF,WIND_REF,
-                  LOAD, C_pipe,
-                  PV_REF_POUT,WIND_REF_POUT,Area,distancePV,distanceWind):
+                  LOAD, PV_REF_POUT,WIND_REF_POUT,Area,distancePV,distanceWind,
+                  distanceUser,distanceStg):
     # pdb.set_trace()    
     n_project = 25
     crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
@@ -24,19 +24,9 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     H_total = (CF/100)*sum(LOAD)*DT*3600
     
     capacityLevels = [0,116000, 579000, 2894000, 5787000]
-    capexValues = [0,826695,1211205,2018674,2556988]
+    TranscapexValues = [0,826695,1211205,2018674,2556988]
+    PipecapexValues = [0,314691,646349,1539750,2258811]
     
-    # Calculate slopes for each segment
-    slopesTrans = []
-    for i in range(len(capacityLevels) - 1):
-        slope = (capexValues[i + 1] - capexValues[i]) / (capacityLevels[i + 1] - capacityLevels[i])
-        slopesTrans.append(slope)
-    
-    # Calculate intercepts for each segment
-    interceptsTrans = []
-    for i in range(len(slopesTrans)):
-        intercept = capexValues[i] - slopesTrans[i] * capacityLevels[i]
-        interceptsTrans.append(intercept)
     
     string = """
     N = %i;
@@ -73,9 +63,6 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     %% load timeseries (kgH/s)                             
     LOAD = %s;
     
-    %% Total pipe cost (USD/kW)                             
-    C_pipe = %s;
-    
     %% discount rate in absolute value not in percentage
     DIS_RATE = %s;
     
@@ -92,21 +79,25 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     %% Capacity levels (kW)
     capacityLevels = %s;
     
-    %% Unit distance capex (USD/km)
-    capexValues = %s;
+    %% Unit distance transmission capex (USD/km)
+    TranscapexValues = %s;
     
-    %% slopes for transmission cost
-    slopesTrans = %s;
+    %% Unit distance pipeline capex (USD/km)
+    PipecapexValues = %s;
     
-    %% intercepts for transmission cost
-    interceptsTrans = %s;
+    %% 
+    distanceUser = %s;
+    
+    %% 
+    distanceStg = %s;
     
     """ %(len(LOAD), len(PV_REF_POUT), len(WIND_REF_POUT), DT, int(n_project),EL_ETA, BAT_ETA_in, BAT_ETA_out,
       C_PV, C_WIND, C_EL, C_UG_STORAGE, UG_STORAGE_CAPA_MAX, C_PIPE_STORAGE,
       PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
       C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG, (1-CF/100)*sum(LOAD)*DT*3600, PV_REF, WIND_REF,
-      str(LOAD), C_pipe,DIS_RATE,crf,H_total,str(Area),str(capacityLevels),str(capexValues),
-      str(slopesTrans),str(interceptsTrans))
+      str(LOAD),DIS_RATE,crf,H_total,str(Area),str(capacityLevels),str(TranscapexValues),str(PipecapexValues),
+      str(distanceUser.tolist()),str(distanceStg.tolist())
+      )
     
     with open(optdir + "hydrogen_plant_data_%s.dzn"%(str(CF)), "w") as file:
         file.write(string)
@@ -183,7 +174,6 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
             # Close the row
             if i!=len(distanceWind)-1:
                 file.write(" \n")
-
         file.write(" |];")
         
         
@@ -237,7 +227,7 @@ def Minizinc(simparams):
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_pipe,Area,distancePV,distanceWind):
+def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Area,distancePV,distanceWind,distanceUser,distanceStg):
     simparams.update(CF = cf)
     
     PV_pv_ref_pout = np.array([])
@@ -275,12 +265,14 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,C_pipe,
                      C_UG_STORAGE = Cost_hs(initial_ug_capa, storage_type),
                      LOAD = [load for i in range(len(pv_ref_pout))], #[kgH2/s] load profile timeseries
                      CF = cf,           #capacity factor
-                     C_pipe = C_pipe,
+                     #C_pipe = C_pipe,
                      PV_REF_POUT = PV_pv_ref_pout,
                      WIND_REF_POUT = Wind_ref_pout,
                      Area = Area,
                      distancePV = distancePV,
-                     distanceWind = distanceWind
+                     distanceWind = distanceWind,
+                     distanceUser = distanceUser,
+                     distanceStg = distanceStg
                      )
 
     make_dzn_file(**simparams)
