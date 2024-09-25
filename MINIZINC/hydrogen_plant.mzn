@@ -47,11 +47,17 @@ array[N_PV, tint] of float: PV_REF_POUT;  %power output from the reference PV pl
 array[N_wind, tint] of float: WIND_REF_POUT;  %power output from the reference wind plant (kW)
 
 % for transmission cost
+float: TransopexRatio;
+float: PipeopexRatio;
+var float: TransopexValues;
+var float: PipeopexValues;
 array[N_cap] of float: TranscapexValues; 
 array[N_cap] of float: PipecapexValues; 
 array[N_cap] of float: capacityLevels;
 array[N_PV] of var float: newPVcapexTrans;
 array[N_wind] of var float: newWindcapexTrans;
+array[N_el] of var float: newElcapexPipe;
+var float: newUsercapexPipe;
 
 array[N_PV] of float: Area;    %Available land area
 array[N_PV, N_el] of float: distancePV;  % Distance from each PV farm to each electrolyser location
@@ -84,6 +90,10 @@ array[N_PV, N_el] of var float: transCostPV;  % Auxiliary variable for PV cost c
 array[N_wind, N_el] of var float: transCostWind;  % Auxiliary variable for wind cost calculation
 array[N_PV] of var float: pv_max_array;    %an array of PV plant rated power values: nodes number of (kW)
 array[N_wind] of var float: wind_max_array;    %an array of PV plant rated power values: nodes number of (kW)
+array[N_wind] of var float: wind_max_array_raw;    %an array of PV plant rated power values: nodes number of (kW)
+array[N_wind] of var bool: wind_binary;
+array[N_PV] of var float: pv_max_array_raw;    %an array of PV plant rated power values: nodes number of (kW)
+array[N_PV] of var bool: pv_binary;
 array[tint] of var float: pv_pout;    %power out of PV plant (kW)
 array[tint] of var float: wind_pout;     %power out of wind farm (kW)
 array[tint] of var float: curtail_p;    %curtailed power (kW)
@@ -104,7 +114,7 @@ array[tsamp] of var float: res_h_level;    %reserved hydrogen for load shut down
 array[tsamp] of var float: bat_e;  %electrical energy stored in the battery (kWh)
 
 
-OF = (C_PV + OM_PV/crf) * pv_max + (C_WIND + OM_WIND/crf) * wind_max + (C_EL + OM_EL/crf) * el_max + (C_UG_STORAGE + OM_UG/crf) * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans + C_pipe;
+OF = (C_PV + OM_PV/crf) * pv_max + (C_WIND + OM_WIND/crf) * wind_max + (C_EL + OM_EL/crf) * el_max + (C_UG_STORAGE + OM_UG/crf) * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + (C_trans + TransopexValues/crf) + (C_pipe + PipeopexValues/crf);
 
 %=== CONSTRAINTS ===
 constraint capex = C_PV * pv_max + C_WIND * wind_max + C_EL * el_max + C_UG_STORAGE * ug_storage_capa + C_PIPE_STORAGE * pipe_storage_capa + C_BAT_ENERGY * bat_e_capa + C_BAT_POWER * bat_p_max + C_trans + C_pipe;
@@ -112,7 +122,7 @@ constraint FOM_PV = pv_max * OM_PV;
 constraint FOM_WIND = wind_max * OM_WIND; 
 constraint FOM_EL = el_max * OM_EL; 
 constraint FOM_UG = ug_storage_capa * OM_UG;
-constraint lcoh = (crf * capex + FOM_PV + FOM_WIND + FOM_EL + FOM_UG)/H_total;
+constraint lcoh = (crf * capex + FOM_PV + FOM_WIND + FOM_EL + FOM_UG + TransopexValues + PipeopexValues)/H_total;
 constraint res_h_level[1] = RES_H_CAPA;
 constraint ug_storage_level[1] = ug_storage_level[N];
 constraint pipe_storage_level[1] = pipe_storage_level[N];
@@ -120,6 +130,8 @@ constraint bat_e[1] = bat_e[N];
 constraint pv_max = sum(j in N_PV)(pv_max_array[j]);
 constraint wind_max = sum(j in N_wind)(wind_max_array[j]);
 constraint el_max >= 0;
+constraint el_max/3600* EL_ETA/ 39.4 >= LOAD[1];
+constraint el_max <= pv_max+wind_max;
 constraint ug_storage_capa >= 0;
 constraint ug_storage_capa <= UG_STORAGE_CAPA_MAX;
 constraint pipe_storage_capa >= PIPE_STORAGE_CAPA_MIN;
@@ -133,18 +145,30 @@ constraint forall(  j in N_PV) (newPVcapexTrans [j] >=0);
 constraint forall(j in N_wind) (
 newWindcapexTrans[j] = piecewise_linear(wind_max_array[j],capacityLevels,TranscapexValues));
            
-constraint forall(  j in N_PV) (newWindcapexTrans [j] >=0);
+constraint forall(  j in N_wind) (newWindcapexTrans [j] >=0);
 
 constraint C_trans = sum(j in N_PV, k in N_el) (newPVcapexTrans [j] * distancePV[j, k]* electrolyserAt[k])+sum(j in N_wind, k in N_el) (newWindcapexTrans [j] * distanceWind[j, k]* electrolyserAt[k]);
 
-constraint C_pipe = sum(k in N_el) (piecewise_linear(el_max*EL_ETA,capacityLevels,PipecapexValues) * distanceStg[k]* electrolyserAt[k])+sum(k in N_el) (piecewise_linear(LOAD[1] * 39.4 *3600,capacityLevels,PipecapexValues) * distanceUser[k]* electrolyserAt[k]);
+constraint forall(  k in N_el) (newElcapexPipe[k]>0);
+constraint forall(  k in N_el) (newElcapexPipe[k] = piecewise_linear(el_max*EL_ETA,capacityLevels,PipecapexValues));
+
+constraint newUsercapexPipe>0;
+constraint newUsercapexPipe = piecewise_linear(LOAD[1] * 39.4 *3600,capacityLevels,PipecapexValues);
+
+constraint C_pipe = sum(k in N_el) ( newElcapexPipe[k] * distanceStg[k]* electrolyserAt[k])+ sum(k in N_el) ( newUsercapexPipe * distanceUser[k]* electrolyserAt[k]);
+constraint TransopexValues = TransopexRatio * C_trans;
+constraint PipeopexValues = PipeopexRatio * C_pipe;
 
 constraint sum(electrolyserAt) = 1;
 constraint pv_max>=pv_max_min;
-constraint forall(  j in N_PV  )(  pv_max_array[j] >=0 );
-constraint forall(  j in N_PV  )(  pv_max_array[j] <=1e7 );
-constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
-constraint forall(  j in N_wind  )(  wind_max_array[j]/1e3/5.2 + pv_max_array[j]/1e3/29.5 <= Area[j] );
+constraint forall(  j in N_PV  )(  pv_max_array_raw[j] >=min(20e3,Area[j]*41.8*1e3) );
+constraint forall(  j in N_PV  )(  pv_max_array_raw[j] <=Area[j]*41.8*1e3);
+constraint forall(  j in N_PV  )(  pv_max_array[j] = pv_max_array_raw[j]*pv_binary[j]);
+constraint forall(  j in N_wind  )(  wind_max_array_raw[j] >=min(20e3,Area[j]*5.2*1e3) );
+constraint forall(  j in N_wind  )(  wind_max_array_raw[j] <=Area[j]*5.2*1e3);
+constraint forall(  j in N_wind  )(  wind_max_array[j] = wind_max_array_raw[j]*wind_binary[j]);
+%constraint forall(  j in N_wind  )(  wind_max_array[j] >=0 );
+constraint forall(  j in N_wind  )(  wind_max_array[j]/1e3/5.2 + pv_max_array[j]/1e3/41.8 <= Area[j] );
 constraint forall(  i in tint  )(  pv_pout[i] = sum(j in N_PV)(pv_max_array[j]/PV_REF * PV_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  wind_pout[i] = sum(j in N_wind)(wind_max_array[j]/WIND_REF * WIND_REF_POUT[j,i]) );
 constraint forall(  i in tint  )(  pv_pout[i] + wind_pout[i] - curtail_p[i] - el_pin_pvwind[i] - bat_pin[i] = 0  );
@@ -233,6 +257,8 @@ output  ["!"] ++
         ["FOM_WIND="] ++ [show(FOM_WIND)] ++ [";"] ++
         ["FOM_EL="] ++ [show(FOM_EL)] ++ [";"] ++
         ["FOM_UG="] ++ [show(FOM_UG)] ++ [";"] ++
+        ["FOM_TRANS="] ++ [show(TransopexValues)] ++ [";"] ++
+        ["FOM_PIPE="] ++ [show(PipeopexValues)] ++ [";"] ++
         ["H_total="] ++ [show(H_total)] ++ [";"] ++
         ["El_location="] ++ [show(k) | k in N_el where fix(electrolyserAt[k]) = true] ++ [";"] ++
         ["newWindcapexTrans="] ++ [show(newWindcapexTrans)] ++ [";"] ++

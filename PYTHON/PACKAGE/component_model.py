@@ -12,7 +12,7 @@ import json, io, requests, platform
 import PySAM.Pvwattsv8 as PVWatts, Windpower
 
 ################################################################
-def pv_gen(capacity):
+def pv_gen(capacity,random_number):
     """
     Parameters
     ----------
@@ -30,31 +30,31 @@ def pv_gen(capacity):
     
     dir = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'SOLAR' + os.sep 
     
-    df = pd.read_csv(dir + 'SolarSource.csv', skiprows=0,low_memory=False)
+    df = pd.read_csv(dir + 'SolarSource_%s.csv'%random_number, skiprows=0,low_memory=False)
     num_year = int((len(df)-2)/8760)
     Output = np.array([])
     for i in range(1,num_year+1):
         new_df = pd.concat([df.iloc[0:2], df.iloc[2+8760*(i-1):2+8760*i]])
-        new_df.to_csv(dir + 'SolarSource1.csv',index=False, lineterminator='\n')
+        new_df.to_csv(dir + 'SolarSource_%s1.csv'%random_number,index=False, lineterminator='\n')
     
         file_name = 'pvfarm_pvwattsv8'
         with open(dir + file_name + ".json", 'r') as file:
             data = json.load(file)
-            data['solar_resource_file'] = dir + 'SolarSource1.csv'
+            data['solar_resource_file'] = dir + 'SolarSource_%s1.csv'%random_number
             for k,v in data.items():
                 if k != "number_inputs":
                     module.value(k, v)
         pv.execute()
         output = np.array(pv.Outputs.gen)
         Output = np.append(Output,output)
-        os.remove(dir + 'SolarSource1.csv')
+        os.remove(dir + 'SolarSource_%s1.csv'%random_number)
     
     print ('pv_gen finishes')
     
     return(Output.tolist())
 
 #################################################################
-def wind_gen(loc,hub_height=150):
+def wind_gen(loc,random_number,hub_height=150):
     """
     Parameters
     ----------
@@ -77,7 +77,7 @@ def wind_gen(loc,hub_height=150):
         
         with open(dir + file_name + ".json", 'r') as file:
             data = json.load(file)
-            data['wind_resource_filename'] = dir + 'WindSource.srw'
+            data['wind_resource_filename'] = dir + 'WindSource_%s.srw'%random_number
             for k,v in data.items():
                 if k != "number_inputs":
                     module.value(k, v)
@@ -127,7 +127,7 @@ def solcast_weather(location):
     print('Weather data was downloaded from Solcast database!')
 
  #################################################################
-def SolarResource(Location):
+def SolarResource(Location,random_number):
     """
     Parameters
     ----------
@@ -145,7 +145,7 @@ def SolarResource(Location):
     data_text = data.to_csv(index=False, lineterminator='\n')
     path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'SOLAR'
     
-    text_file = open(path + os.sep + "SolarSource.csv", "w")
+    text_file = open(path + os.sep + "SolarSource_%s.csv"%random_number, "w")
     text_file.write(data_text)
     text_file.close()
     #print('Solar data file was generated from Solcast database!')
@@ -245,7 +245,7 @@ def WindSource(Location):
     text_file.close()
     print("Wind source data file was generated from Solcast database!")
  #################################################################
-def WindSource_windlab(Location):
+def WindSource_windlab(Location,random_number):
     """
     Generates the wind source data for SAM based on the weather data 
     that is sourced from windlab stored in WEATHER folder
@@ -304,7 +304,7 @@ def WindSource_windlab(Location):
     
     data_text = data.to_csv(header=False, index=False, lineterminator='\n')
     path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WIND'
-    text_file = open(path + os.sep + "WindSource.srw", "w") # I got an error if use ./csv format for wind source
+    text_file = open(path + os.sep + "WindSource_%s.srw"%random_number, "w") # I got an error if use ./csv format for wind source
     text_file.write(data_text)
     text_file.close()
     #print("Wind source data file was generated from Windlab database!")

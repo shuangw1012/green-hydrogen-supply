@@ -16,7 +16,8 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
                   C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG,DIS_RATE,
                   CF, PV_REF,WIND_REF,
                   LOAD, PV_REF_POUT,WIND_REF_POUT,Area,distancePV,distanceWind,
-                  distanceUser,distanceStg):
+                  distanceUser,distanceStg,C_stg_ratio,
+                  C_trans_ratio,C_pipe_ratio,storage_type, random):
     # pdb.set_trace()    
     n_project = 25
     crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
@@ -24,9 +25,12 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     H_total = (CF/100)*sum(LOAD)*DT*3600
     
     capacityLevels = [0,116000, 579000, 2894000, 5787000]
-    TranscapexValues = [0,826695,1211205,2018674,2556988]
-    PipecapexValues = [0,314691,646349,1539750,2258811]
-    
+    TranscapexValues = np.array([0,826695,1211205,2018674,2556988]) * C_trans_ratio
+    TranscapexValues = TranscapexValues.tolist()
+    PipecapexValues = np.array([0,314691,646349,1539750,2258811]) * C_pipe_ratio
+    PipecapexValues = PipecapexValues.tolist()
+    TransopexRatio = 0.005 * C_trans_ratio
+    PipeopexRatio = 0.0225 * C_pipe_ratio
     
     string = """
     N = %i;
@@ -85,6 +89,12 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
     %% Unit distance pipeline capex (USD/km)
     PipecapexValues = %s;
     
+    %% Ratio of transmission opex
+    TransopexRatio = %s;
+    
+    %% Ratio of pipeline opex
+    PipeopexRatio = %s;
+    
     %% 
     distanceUser = %s;
     
@@ -96,10 +106,10 @@ def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
       PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
       C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG, (1-CF/100)*sum(LOAD)*DT*3600, PV_REF, WIND_REF,
       str(LOAD),DIS_RATE,crf,H_total,str(Area),str(capacityLevels),str(TranscapexValues),str(PipecapexValues),
-      str(distanceUser.tolist()),str(distanceStg.tolist())
+      str(TransopexRatio),str(PipeopexRatio),str(distanceUser.tolist()),str(distanceStg.tolist())
       )
     
-    with open(optdir + "hydrogen_plant_data_%s.dzn"%(str(CF)), "w") as file:
+    with open(optdir + "hydrogen_plant_data_%s.dzn"%(random), "w") as file:
         file.write(string)
         
         file.write("%% Power output time series from reference PV plant (W)\n")
@@ -198,16 +208,18 @@ def Minizinc(simparams):
     # in different systems. I think a better way is that we add minizinc to an environment variable 
     #during the installation
     
-    minizinc_data_file_name = "hydrogen_plant_data_%s.dzn"%(str(simparams['CF']))
+    minizinc_data_file_name = "hydrogen_plant_data_%s.dzn"%(simparams['random'])
     from subprocess import check_output
     output = str(check_output([#mzdir + 
-                               'minizinc', "--soln-sep", '""',
-                               "--search-complete-msg", '""', "--solver",
-                               "gurobi", optdir + "hydrogen_plant.mzn",
+                               'minizinc', 
+                               "--soln-sep", '""',
+                               "--search-complete-msg", '""', 
+                               "--solver","gurobi", 
+                               "--relGap", "0.001",
+                               optdir + "hydrogen_plant.mzn",
                                optdir + minizinc_data_file_name]))
     
     output = output.replace('[','').replace(']','').split('!')
-    print (output)
     for string in output:
         if 'CAPEX' in string:
             results = string.split(';')
@@ -220,41 +232,41 @@ def Minizinc(simparams):
     
     #remove the minizinc data file after running the minizinc model
     
-    #mzfile = optdir + minizinc_data_file_name
-    #if os.path.exists(mzfile):
-    #    os.remove(mzfile)
+    mzfile = optdir + minizinc_data_file_name
+    if os.path.exists(mzfile):
+        os.remove(mzfile)
     
     
     return(  RESULTS  )
 
-def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Area,distancePV,distanceWind,distanceUser,distanceStg):
+def Optimise(load, cf, simparams,PV_location,Wind_location,Area,distancePV,distanceWind,distanceUser,distanceStg,random_number):
     simparams.update(CF = cf)
+    storage_type = simparams['storage_type']
     
     PV_pv_ref_pout = np.array([])
     Wind_ref_pout = np.array([])
     
     for loc2 in Wind_location:
         #Update the weather data files
-        WindSource_windlab(loc2)
+        WindSource_windlab(loc2,random_number)
         
         wind_ref = 320e3 #(kW)
-        wind_ref_pout = list(np.trunc(100*np.array(wind_gen(loc2)))/100)
+        wind_ref_pout = list(np.trunc(100*np.array(wind_gen(loc2,random_number)))/100)
         Wind_ref_pout = np.append(Wind_ref_pout,wind_ref_pout)
     
     Wind_ref_pout = Wind_ref_pout.reshape(len(Wind_location),len(wind_ref_pout))
     i = 1
     for loc in PV_location:
-        SolarResource(loc)
+        SolarResource(loc,random_number)
         print (loc)
         pv_ref = 1e3 #(kW)
-        pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref)))/100)
+        pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref,random_number)))/100)
         PV_pv_ref_pout = np.append(PV_pv_ref_pout,pv_ref_pout)
         i=i+1
         
     PV_pv_ref_pout = PV_pv_ref_pout.reshape(len(PV_location),len(pv_ref_pout))
     
-    
-    if storage_type!='No_UG':
+    if storage_type!='Pipeline':
         initial_ug_capa = 110
     else:
         initial_ug_capa = 0
@@ -262,7 +274,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Area,di
     simparams.update(DT = 1,#[s] time steps
                      PV_REF = pv_ref, #capacity of reference PV plant (kW)
                      WIND_REF = wind_ref, #capacity of reference wind farm (kW)
-                     C_UG_STORAGE = Cost_hs(initial_ug_capa, storage_type),
+                     C_UG_STORAGE = Cost_hs(initial_ug_capa, storage_type)*simparams['C_stg_ratio'],
                      LOAD = [load for i in range(len(pv_ref_pout))], #[kgH2/s] load profile timeseries
                      CF = cf,           #capacity factor
                      #C_pipe = C_pipe,
@@ -272,7 +284,8 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Area,di
                      distancePV = distancePV,
                      distanceWind = distanceWind,
                      distanceUser = distanceUser,
-                     distanceStg = distanceStg
+                     distanceStg = distanceStg,
+                     random = random_number
                      )
 
     make_dzn_file(**simparams)
@@ -287,7 +300,7 @@ def Optimise(load, cf, storage_type, simparams,PV_location,Wind_location,Area,di
             if abs(new_ug_capa - initial_ug_capa)/np.mean([new_ug_capa,initial_ug_capa]) > 0.05:
                 initial_ug_capa = new_ug_capa
                 print('Refining storage cost; new storage capa=', initial_ug_capa)
-                simparams['C_UG_STORAGE'] = Cost_hs(initial_ug_capa, storage_type)
+                simparams['C_UG_STORAGE'] = Cost_hs(initial_ug_capa, storage_type)*simparams['C_stg_ratio']
                 #results = Pulp(simparams)
                 make_dzn_file(**simparams)
                 results = Minizinc(simparams)
@@ -327,6 +340,6 @@ def Cost_hs(size,storage_type):
     elif storage_type == 'Depleted gas':
         cost = 2.72*0.746
         print ('Depleted gas' + str(cost))
-    elif storage_type == 'No_UG':
+    elif storage_type == 'Pipeline':
         cost = 516
     return(cost)
