@@ -1,19 +1,19 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar 29 10:32:04 2022
+"""Project directory definitions.
 
-@author: Ahmad Mojiri
+Paths are resolved relative to this file rather than the current working
+folder, so the scripts can be launched from a local terminal, an IDE, or an
+NCI batch job without changing directory first.
 """
 
+from pathlib import Path
 import os
- 
-connector = os.sep
-basedir = os.path.realpath('..') + connector
-    
 
-datadir = basedir + "DATA%s" %connector
-# modeldir = basedir + "modelling%spython%spackage%s" %(connector, connector, connector)
-optdir = basedir + "MINIZINC%s" %(connector) # I changed to BIG MINIZINC here
-# figdir = basedir + "modelling%sfigures%s" %(connector, connector)
-# paperdir = basedir + "Publications%spaper_1%s" %(connector, connector)
-# resultsdir = datadir + "arbitrage%s" %connector
+PYTHON_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = PYTHON_DIR.parent
+DATA_DIR = PROJECT_DIR / "DATA"
+MINIZINC_DIR = PROJECT_DIR / "MINIZINC"
+OUTPUT_DIR = DATA_DIR / "OPT_OUTPUTS"
+
+# Backward-compatible string paths used by the existing model code.
+datadir = str(DATA_DIR) + os.sep
+optdir = str(MINIZINC_DIR) + os.sep

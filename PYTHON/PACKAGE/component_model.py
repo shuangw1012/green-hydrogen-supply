@@ -1,331 +1,209 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri May  6 12:46:54 2022
+"""Renewable generation models and weather-file preparation.
 
-@author: Ahmad Mojiri
+This module prepares the temporary resource files required by NREL PySAM and
+returns hourly reference generation profiles for the optimisation model.
+The published Tasmania case uses PVWatts v8 for PV and Windpower for wind.
 """
-from projdirs import datadir
+
+from __future__ import annotations
+
+import json
 import os
+
 import numpy as np
 import pandas as pd
-import json, io, requests, platform
-import PySAM.Pvwattsv8 as PVWatts, Windpower
+import PySAM.Pvwattsv8 as PVWatts
+import PySAM.Windpower as Windpower
 
-################################################################
-def pv_gen(capacity,random_number):
-    """
+from projdirs import DATA_DIR
+
+SOLAR_DIR = DATA_DIR / "SAM_INPUTS" / "SOLAR"
+WIND_DIR = DATA_DIR / "SAM_INPUTS" / "WIND"
+WEATHER_DIR = DATA_DIR / "SAM_INPUTS" / "WEATHER_DATA"
+WIND_RESULTS_DIR = WIND_DIR / "SAM_results"
+
+PV_CONFIG = SOLAR_DIR / "pvfarm_pvwattsv8.json"
+WIND_CONFIG = WIND_DIR / "windfarm_windpower.json"
+
+
+def pv_gen(capacity: float, run_id: str) -> list[float]:
+    """Run PySAM PVWatts for the prepared solar resource file.
+
     Parameters
     ----------
-    capacity in kW
+    capacity
+        Reference PV capacity in kW.
+    run_id
+        Unique identifier used for temporary files. This prevents collisions
+        when several scenarios are run concurrently on NCI.
 
-    Returns system powr generated in W for each hour in a year
-    
+    Returns
+    -------
+    list[float]
+        Hourly PV generation in kW for all years contained in the source file.
     """
+    source_file = SOLAR_DIR / f"SolarSource_{run_id}.csv"
+    if not source_file.exists():
+        raise FileNotFoundError(f"Solar resource file not found: {source_file}")
+
+    source = pd.read_csv(source_file, low_memory=False)
+    n_years = int((len(source) - 2) / 8760)
+    if n_years < 1:
+        raise ValueError(f"Unexpected solar resource length in {source_file}")
+
     pv = PVWatts.new()
-    
-    
-    #dir = datadir + ['\SAM_INPUTS\SOLAR\\', '/SAM_INPUTS/SOLAR/'][platform.system()=='Linux']
-    #file_name = ['pvfarm_pvwattsv8_win','pvfarm_pvwattsv8_linux'][platform.system()=='Linux']
-    module = pv
-    
-    dir = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'SOLAR' + os.sep 
-    
-    df = pd.read_csv(dir + 'SolarSource_%s.csv'%random_number, skiprows=0,low_memory=False)
-    num_year = int((len(df)-2)/8760)
-    Output = np.array([])
-    for i in range(1,num_year+1):
-        new_df = pd.concat([df.iloc[0:2], df.iloc[2+8760*(i-1):2+8760*i]])
-        new_df.to_csv(dir + 'SolarSource_%s1.csv'%random_number,index=False, lineterminator='\n')
-    
-        file_name = 'pvfarm_pvwattsv8'
-        with open(dir + file_name + ".json", 'r') as file:
-            data = json.load(file)
-            data['solar_resource_file'] = dir + 'SolarSource_%s1.csv'%random_number
-            for k,v in data.items():
-                if k != "number_inputs":
-                    module.value(k, v)
-        pv.execute()
-        output = np.array(pv.Outputs.gen)
-        Output = np.append(Output,output)
-        os.remove(dir + 'SolarSource_%s1.csv'%random_number)
-    
-    print ('pv_gen finishes')
-    
-    return(Output.tolist())
+    output_all: list[float] = []
+    single_year_file = SOLAR_DIR / f"SolarSource_{run_id}_single_year.csv"
 
-#################################################################
-def wind_gen(loc,random_number,hub_height=150):
-    """
-    Parameters
-    ----------
-    Capacity will be added later
+    try:
+        for year_index in range(n_years):
+            start = 2 + 8760 * year_index
+            stop = start + 8760
+            one_year = pd.concat([source.iloc[:2], source.iloc[start:stop]])
+            one_year.to_csv(single_year_file, index=False, lineterminator="\n")
 
-    Returns wind powr generated in W for each hour in a year
-    
-    """
-    dir = datadir + os.sep + 'SAM_INPUTS' + os.sep + 'WIND' + os.sep 
-    if not os.path.exists(dir + os.sep + 'SAM_results'):
-        os.mkdir(dir + os.sep + 'SAM_results')
-    
-    if not os.path.exists(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv'):
-        wind = Windpower.new()
-        
-        #dir = datadir + ['\SAM_INPUTS\WIND\\', '/SAM_INPUTS/WIND/'][platform.system()=='Linux']
-        #file_name = ['windfarm_windpower_win','windfarm_windpower_linux'][platform.system()=='Linux']
-        module = wind
-        file_name = 'windfarm_windpower'
-        
-        with open(dir + file_name + ".json", 'r') as file:
-            data = json.load(file)
-            data['wind_resource_filename'] = dir + 'WindSource_%s.srw'%random_number
-            for k,v in data.items():
-                if k != "number_inputs":
-                    module.value(k, v)
-        file.close()
-        # module.SystemDesign.system_capacity = capacity
-        wind.Turbine.wind_turbine_hub_ht = hub_height
-        wind.execute()
-        output = np.array(wind.Outputs.gen)
-        np.savetxt(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv', output, delimiter=',')
-    else:
-        print ('skip PySAM for wind for %s'%loc)
-        output = np.loadtxt(dir + os.sep + 'SAM_results' + os.sep + loc + '.csv', delimiter=',')
-        
-    print ('wind_gen finishes for %s'%loc)
-    return(output.tolist())
+            with PV_CONFIG.open("r", encoding="utf-8") as stream:
+                config = json.load(stream)
 
-#################################################################
-def solcast_weather(location):
-    """
-    The function download tmy weather data from Solcast under a research
-    account.
+            # The resource path is scenario-specific and therefore overrides
+            # the path stored in the exported PySAM configuration file.
+            config["solar_resource_file"] = str(single_year_file)
+            config["system_capacity"] = float(capacity)
+
+            for key, value in config.items():
+                if key != "number_inputs":
+                    pv.value(key, value)
+
+            pv.execute()
+            output_all.extend(np.asarray(pv.Outputs.gen, dtype=float).tolist())
+    finally:
+        single_year_file.unlink(missing_ok=True)
+
+    return output_all
+
+
+def wind_gen(loc: str, run_id: str, hub_height: float = 150.0) -> list[float]:
+    """Return hourly wind generation for a candidate cell.
+
+    Cached PySAM results are used when available. Otherwise, the prepared SRW
+    file for ``run_id`` is passed to PySAM Windpower and the result is cached.
 
     Parameters
     ----------
-    location : List object
-         includes [latitude,longitude] of the location
+    loc
+        Location identifier, including the weather-data year suffix.
+    run_id
+        Unique identifier for temporary weather files.
+    hub_height
+        Wind turbine hub height in metres.
+    """
+    WIND_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    cache_file = WIND_RESULTS_DIR / f"{loc}.csv"
 
-    Returns a savd csv file in the format that can be used with SAM for PV
-    modelling.
-    """
-    base_url = 'https://api.solcast.com.au/'
-    tool = 'tmy_hourly?api_key='
-    key = 'YNEmGUM8_CfnWlNPinB9d3EnlGVpFwWV'
-    Parameters = {}
-    Parameters = dict(zip(['api_key','format','latitude','longitude'],
-                          [key,'x-sam+csv']+ location,
-                          ))
-    
-    response = requests.get(base_url+tool,params=Parameters)
-    print('Connection Status:', response.status_code)
-    response.close()
-    
-    path = r'C:\Nextcloud\HILT-CRC---Green-Hydrogen\DATA\SAM_INPUTS\WEATHER_DATA'
-    text_file = open(path + "\weather_data_solcast.csv", "w")
-    text_file.write(response.text)
-    text_file.close()
-    print('Weather data was downloaded from Solcast database!')
+    if cache_file.exists():
+        output = np.loadtxt(cache_file, delimiter=",")
+        return np.asarray(output, dtype=float).tolist()
 
- #################################################################
-def SolarResource(Location,random_number):
-    """
-    Parameters
-    ----------
-    None
-        
-    Returns
-    -------
-    copies the weather data into SOLAR folder for SAM.
+    source_file = WIND_DIR / f"WindSource_{run_id}.srw"
+    if not source_file.exists():
+        raise FileNotFoundError(f"Wind resource file not found: {source_file}")
 
-    """
-    WD_file = 'weather_data_%s.csv'%(Location)
-    parent_directory = os.path.dirname(os.getcwd())
-    path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'    
-    data = pd.read_csv(path + os.sep + WD_file,low_memory=False)
-    data_text = data.to_csv(index=False, lineterminator='\n')
-    path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'SOLAR'
-    
-    text_file = open(path + os.sep + "SolarSource_%s.csv"%random_number, "w")
-    text_file.write(data_text)
-    text_file.close()
-    #print('Solar data file was generated from Solcast database!')
+    wind = Windpower.new()
+    with WIND_CONFIG.open("r", encoding="utf-8") as stream:
+        config = json.load(stream)
 
- #################################################################
-def WindSource(Location):
+    config["wind_resource_filename"] = str(source_file)
+    for key, value in config.items():
+        if key != "number_inputs":
+            wind.value(key, value)
+
+    wind.Turbine.wind_turbine_hub_ht = float(hub_height)
+    wind.execute()
+    output = np.asarray(wind.Outputs.gen, dtype=float)
+
+    # Write through a temporary file before replacing the shared cache. This
+    # avoids leaving a partial cache file if a process is interrupted.
+    temp_cache = WIND_RESULTS_DIR / f".{loc}.{run_id}.tmp"
+    np.savetxt(temp_cache, output, delimiter=",")
+    os.replace(temp_cache, cache_file)
+    return output.tolist()
+
+
+def SolarResource(location: str, run_id: str) -> None:
+    """Prepare a candidate-cell weather file for PySAM PVWatts."""
+    source = WEATHER_DIR / f"weather_data_{location}.csv"
+    target = SOLAR_DIR / f"SolarSource_{run_id}.csv"
+    if not source.exists():
+        raise FileNotFoundError(f"Weather file not found: {source}")
+
+    # Retain the original project behaviour: parse and re-write the SAM CSV
+    # before passing it to PVWatts.
+    data = pd.read_csv(source, low_memory=False)
+    data.to_csv(target, index=False, lineterminator="\n")
+
+
+def WindSource_windlab(location: str, run_id: str) -> None:
+    """Create a PySAM SRW file from the Windlab-format weather data.
+
+    The supplied wind resource is at 150 m. A 10 m layer is added using a
+    logarithmic wind profile because the PySAM Windpower resource format used
+    here contains both heights.
     """
-    Generates the wind source data for SAM based on the weather data 
-    that is stored in WEATHER folder
-    
-    Returns
-    -------
-    None.
-    
-    """
-    WD_file = 'weather_data_%s.csv'%(Location)
-    parent_directory = os.path.dirname(os.getcwd())
-    path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'    
-    data = pd.read_csv(path + os.sep + WD_file, skiprows=0)
-    Lat = data.lat[0]
-    Lon = data.lon[0]
-    data = pd.read_csv(path + os.sep + WD_file, skiprows=2)
-    
-    data_10 = data.iloc[:,[5,14,15,16]].copy()
-    data_10.Pressure=data_10.Pressure/1013.25
-    data_10 = data_10.rename(columns = {'Temperature':'T',
-                                        'Wind Speed':'S',
-                                        'Wind Direction':'D',
-                                        'Pressure':'P'})
-    heading_10 = pd.DataFrame({'T':['Temperature','C',10],
-                               'S':["Speed", 'm/s',10],
-                               'D':["Direction",'degrees',10],
-                               'P':['Pressure','atm',10]})
-    data_10 = heading_10.append(data_10).reset_index(drop=True)
-    data = data_10.copy()
-    Z_anem = 10
-    
-    Z = 40
-    data_40 = data_10.copy()
-    data_40.iloc[2,:]=Z
-    data_temp = data_40.iloc[3:].copy()
-    S = data_temp.apply(lambda x:speed(Z, Z_anem, data_temp['S']) )
-    data_temp.S = S
-    data_40 = data_40.iloc[0:3].append(data_temp,ignore_index=True)
-    data = pd.concat([data , data_40],axis=1)
-    
-    Z = 70
-    data_70 = data_10.copy()
-    data_70.iloc[2,:]=Z
-    data_temp = data_70.iloc[3:].copy()
-    S = data_temp.apply(lambda x:speed(Z, Z_anem, data_temp['S']) )
-    data_temp.S = S
-    data_70 = data_70.iloc[0:3].append(data_temp,ignore_index=True)
-    data = pd.concat([data , data_70],axis=1)
-    
-    Z = 100
-    data_100 = data_10.copy()
-    data_100.iloc[2,:]=Z
-    data_temp = data_100.iloc[3:].copy()
-    S = data_temp.apply(lambda x:speed(Z, Z_anem, data_temp['S']) )
-    data_temp.S = S
-    data_100 = data_100.iloc[0:3].append(data_temp,ignore_index=True)
-    data = pd.concat([data , data_100],axis=1)
-    
-    Z = 130
-    data_130 = data_10.copy()
-    data_130.iloc[2,:]=Z
-    data_temp = data_130.iloc[3:].copy()
-    S = data_temp.apply(lambda x:speed(Z, Z_anem, data_temp['S']) )
-    data_temp.S = S
-    data_130 = data_130.iloc[0:3].append(data_temp,ignore_index=True)
-    data = pd.concat([data , data_130],axis=1)
-    
-    Z = 160
-    data_160 = data_10.copy()
-    data_160.iloc[2,:]=Z
-    data_temp = data_160.iloc[3:].copy()
-    S = data_temp.apply(lambda x:speed(Z, Z_anem, data_temp['S']) )
-    data_temp.S = S
-    data_160 = data_160.iloc[0:3].append(data_temp,ignore_index=True)
-    data = pd.concat([data , data_160],axis=1)
-    
-    
-    data.loc[-1] = 24*['Latitude:%s'%(Lat)]
-    data.index = data.index+1
-    data.sort_index(inplace=True)
-    data.loc[-1] = 24*['Longitude:%s'%(Lon)]
-    data.index = data.index+1
-    data.sort_index(inplace=True)
-    
-    data_text = data.to_csv(header=False, index=False, line_terminator='\n')
-    
-    path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WIND'
-    
-    text_file = open(path + "\WindSource.csv", "w")
-    text_file.write(data_text)
-    text_file.close()
-    print("Wind source data file was generated from Solcast database!")
- #################################################################
-def WindSource_windlab(Location,random_number):
-    """
-    Generates the wind source data for SAM based on the weather data 
-    that is sourced from windlab stored in WEATHER folder
-    This data is based on 150m hub height
-    
-    Returns
-    -------
-    None.
-    
-    """
-    WD_file = 'weather_data_%s.csv'%(Location)
-    
-    parent_directory = os.path.dirname(os.getcwd())
-    path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WEATHER_DATA'    
-    data = pd.read_csv(path + os.sep + WD_file, skiprows=0,low_memory=False)
-    Lat = data.lat[0]
-    Lon = data.lon[0]
-    data = pd.read_csv(path + os.sep + WD_file, skiprows=2)
-    
-    data_150 = data.iloc[:,[5,14,15,16]].copy()
-    data_150.Pressure=data_150.Pressure/1013.25
-    data_150 = data_150.rename(columns = {'Temperature':'T',
-                                        'Wind Speed':'S',
-                                        'Wind Direction':'D',
-                                        'Pressure':'P'})
-    heading_150 = pd.DataFrame({'T':['Temperature','C',150],
-                               'S':["Speed", 'm/s',150],
-                               'D':["Direction",'degrees',150],
-                               'P':['Pressure','atm',150]})
-    #data_150 = heading_150.append(data_150).reset_index(drop=True) # I got a warning for this sentence
+    source = WEATHER_DIR / f"weather_data_{location}.csv"
+    target = WIND_DIR / f"WindSource_{run_id}.srw"
+    if not source.exists():
+        raise FileNotFoundError(f"Weather file not found: {source}")
+
+    metadata = pd.read_csv(source, nrows=1, low_memory=False)
+    latitude = metadata.loc[0, "lat"]
+    longitude = metadata.loc[0, "lon"]
+
+    weather = pd.read_csv(source, skiprows=2)
+    data_150 = weather.iloc[:, [5, 14, 15, 16]].copy()
+    data_150["Pressure"] = data_150["Pressure"] / 1013.25
+    data_150 = data_150.rename(
+        columns={
+            "Temperature": "T",
+            "Wind Speed": "S",
+            "Wind Direction": "D",
+            "Pressure": "P",
+        }
+    )
+
+    heading_150 = pd.DataFrame(
+        {
+            "T": ["Temperature", "C", 150],
+            "S": ["Speed", "m/s", 150],
+            "D": ["Direction", "degrees", 150],
+            "P": ["Pressure", "atm", 150],
+        }
+    )
     data_150 = pd.concat([heading_150, data_150], ignore_index=True)
-    
-    data = data_150.copy()
-    Z_anem = 150
-    
-    Z = 10
+
     data_10 = data_150.copy()
-    data_10.iloc[2,:]=Z
-    data_temp = data_10.iloc[3:].copy()
-    S = data_temp.apply(lambda x:speed(Z, Z_anem, data_temp['S']) )
+    data_10.iloc[2, :] = 10
+    data_10_body = data_10.iloc[3:].copy()
+    data_10_body["S"] = speed(10.0, 150.0, data_10_body["S"])
+    data_10 = pd.concat([data_10.iloc[:3], data_10_body], ignore_index=True)
 
-    #data_temp.S = S # this sentence does not work in my computer
-    data_temp.S = S.S
-    #data_10 = data_10.iloc[0:3].append(data_temp,ignore_index=True)
-    data_10 = pd.concat([data_10.iloc[0:3], data_temp], ignore_index=True)
-    
-    data = pd.concat([data , data_10],axis=1)
-    
-        
-    data.loc[-1] = 8*['Latitude:%s'%(Lat)]
-    data.index = data.index+1
+    data = pd.concat([data_150, data_10], axis=1)
+
+    # PySAM SRW metadata rows contain one entry per resource column.
+    n_columns = data.shape[1]
+    data.loc[-1] = [f"Latitude:{latitude}"] * n_columns
+    data.index = data.index + 1
     data.sort_index(inplace=True)
-    data.loc[-1] = 8*['Longitude:%s'%(Lon)]
-    data.index = data.index+1
+    data.loc[-1] = [f"Longitude:{longitude}"] * n_columns
+    data.index = data.index + 1
     data.sort_index(inplace=True)
-    
-    data_text = data.to_csv(header=False, index=False, lineterminator='\n')
-    path = parent_directory + os.sep + 'DATA' + os.sep + 'SAM_INPUTS' + os.sep + 'WIND'
-    text_file = open(path + os.sep + "WindSource_%s.srw"%random_number, "w") # I got an error if use ./csv format for wind source
-    text_file.write(data_text)
-    text_file.close()
-    #print("Wind source data file was generated from Windlab database!")
 
- #################################################################
-def speed(Z,Z_anem,U_anem):
-    """
-    This function calculates the logarithmic wind speed as a function of 
-    heigth
-    
-    Parameters
-    ----------
-    Z: height of interest
-    Z_anem: anemometer heigth
-    U_anem: wind speed at anemometer height
+    target.parent.mkdir(parents=True, exist_ok=True)
+    data.to_csv(target, header=False, index=False, lineterminator="\n")
 
-    Returns wind speed at Z
-        
-    """
-    Z0 = 0.01
-    U_H = U_anem * np.log(Z/Z0)/np.log(Z_anem/Z0)
-    return(U_H)
 
-    
+def speed(z: float, z_anem: float, u_anem):
+    """Scale wind speed between heights using a logarithmic wind profile."""
+    roughness_length = 0.01
+    return u_anem * np.log(z / roughness_length) / np.log(
+        z_anem / roughness_length
+    )

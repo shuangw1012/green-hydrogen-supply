@@ -1,0 +1,27 @@
+#!/bin/bash
+#PBS -P xa1
+#PBS -q normal
+#PBS -l ncpus=17
+#PBS -l mem=68GB
+#PBS -l walltime=12:00:00
+#PBS -l storage=gdata/xa1+scratch/xa1
+#PBS -l wd
+#PBS -j oe
+
+set -euo pipefail
+
+# Load the software environment used for this project before submission, or
+# uncomment/adapt module commands below to match the versions available on Gadi.
+# module load python3/<version>
+# module load openmpi/<version>
+# module load minizinc/<version>
+# module load gurobi/<version>
+# source /path/to/venv/bin/activate
+
+# Each MPI rank launches one Gurobi solve. Keep numerical libraries and Gurobi
+# to one thread per rank to avoid oversubscribing the requested 17 CPUs.
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+
+mpirun -np "${PBS_NCPUS}" python3 PYTHON/main.py

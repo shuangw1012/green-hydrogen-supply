@@ -1,345 +1,349 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar 29 10:28:44 2022
+"""Optimisation workflow for the renewable-hydrogen hub model.
 
-@author: Ahmad Mojiri
+The module performs three tasks:
+1. generate hourly PV and wind reference profiles with PySAM;
+2. write a scenario-specific MiniZinc data file; and
+3. solve the MILP with the MiniZinc Gurobi backend.
+
+The public function :func:`Optimise` retains the interface used by the original
+project scripts.
 """
-from projdirs import optdir
+
+from __future__ import annotations
+
+import subprocess
+
 import numpy as np
-from PACKAGE.component_model import pv_gen, wind_gen,SolarResource, WindSource,WindSource_windlab
-import os
-from scipy.interpolate import interp2d
 
-def make_dzn_file(DT, EL_ETA, BAT_ETA_in, BAT_ETA_out,
-                  C_PV, C_WIND, C_EL, C_UG_STORAGE,UG_STORAGE_CAPA_MAX,
-                  C_PIPE_STORAGE,PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
-                  C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG,DIS_RATE,
-                  CF, PV_REF,WIND_REF,
-                  LOAD, PV_REF_POUT,WIND_REF_POUT,Area,distancePV,distanceWind,
-                  distanceUser,distanceStg,C_stg_ratio,
-                  C_trans_ratio,C_pipe_ratio,storage_type, random):
-    # pdb.set_trace()    
-    n_project = 25
-    crf = DIS_RATE * (1+DIS_RATE)**n_project/((1+DIS_RATE)**n_project-1)
-    # pdb.set_trace()    
-    H_total = (CF/100)*sum(LOAD)*DT*3600
-    
-    capacityLevels = [0,116000, 579000, 2894000, 5787000]
-    TranscapexValues = np.array([0,826695,1211205,2018674,2556988]) * C_trans_ratio
-    TranscapexValues = TranscapexValues.tolist()
-    PipecapexValues = np.array([0,314691,646349,1539750,2258811]) * C_pipe_ratio
-    PipecapexValues = PipecapexValues.tolist()
-    TransopexRatio = 0.005 * C_trans_ratio
-    PipeopexRatio = 0.0225 * C_pipe_ratio
-    
-    string = """
-    N = %i;
-    n_PV = %i;
-    n_wind = %i;
-    DT = %.2f;      %% time difference between sample points (hr)
-    n_project = %s;
-    EL_ETA = %.2f;  %% conversion factor of the electrolyser
-    BAT_ETA_in = %.2f;   %%charging efficiency of electrochemical battery
-    BAT_ETA_out = %.2f;  %%discharging efficiency of electrochemical battery 
-    
-    C_PV = %.2f;    %% unit cost of PV ($/kW)
-    C_WIND =  %.2f;    %% unit cost of Wind farm ($/kW)
-    C_EL =  %.2f;    %% unit cost of electrolyser ($/kW)
-    C_UG_STORAGE = %.2f;    %% unit cost of hydrogen storage ($/kgH)
-    UG_STORAGE_CAPA_MAX = %.2f; %%maximum size of underground storage $/(kg of H2)
-    C_PIPE_STORAGE = %.2f; %% unit cost of storage with line packing $/(kg of H2)
-    PIPE_STORAGE_CAPA_MIN = %.2f; %% minimum size of line packing (kg of H2)
-    
-    C_BAT_ENERGY = %.2f;   %% unit cost of electrochemical battery energy ($/kWh)
-    C_BAT_POWER = %.2f;   %% unit cost of electrochemical battery power ($/kWh)
+from projdirs import MINIZINC_DIR
+from PACKAGE.component_model import (
+    SolarResource,
+    WindSource_windlab,
+    pv_gen,
+    wind_gen,
+)
 
-    OM_PV = %.2f;    %% Annual O&M cost of PV ($/kW)
-    OM_WIND = %.2f;  %% Annual O&M cost of wind ($/kW)
-    OM_EL = %.2f;    %% Annual O&M cost of electrolyser ($/kW)
-    OM_UG = %.2f;    %% %% Annual O&M cost of underground storage ($/kg)
-    
-    RES_H_CAPA = %.2f;       %% reserved hydrogen for lowered capcaity factor
-    
-    PV_REF = %.2f;       %%the capacity of the reference PV plant (kW)
-    
-    WIND_REF = %.2f;  %% the capacity of the refernce wind plant (kW)
-    
-    %% load timeseries (kgH/s)                             
-    LOAD = %s;
-    
-    %% discount rate in absolute value not in percentage
-    DIS_RATE = %s;
-    
-    %%capital recovery factor
-    crf = %s;
-    
-    %%Hydrogen production
-    H_total = %s;
-    
-    %% Available land area (km2)                             
-    Area = %s;
-    
-     
-    %% Capacity levels (kW)
-    capacityLevels = %s;
-    
-    %% Unit distance transmission capex (USD/km)
-    TranscapexValues = %s;
-    
-    %% Unit distance pipeline capex (USD/km)
-    PipecapexValues = %s;
-    
-    %% Ratio of transmission opex
-    TransopexRatio = %s;
-    
-    %% Ratio of pipeline opex
-    PipeopexRatio = %s;
-    
-    %% 
-    distanceUser = %s;
-    
-    %% 
-    distanceStg = %s;
-    
-    """ %(len(LOAD), len(PV_REF_POUT), len(WIND_REF_POUT), DT, int(n_project),EL_ETA, BAT_ETA_in, BAT_ETA_out,
-      C_PV, C_WIND, C_EL, C_UG_STORAGE, UG_STORAGE_CAPA_MAX, C_PIPE_STORAGE,
-      PIPE_STORAGE_CAPA_MIN, C_BAT_ENERGY,
-      C_BAT_POWER, OM_PV, OM_WIND, OM_EL, OM_UG, (1-CF/100)*sum(LOAD)*DT*3600, PV_REF, WIND_REF,
-      str(LOAD),DIS_RATE,crf,H_total,str(Area),str(capacityLevels),str(TranscapexValues),str(PipecapexValues),
-      str(TransopexRatio),str(PipeopexRatio),str(distanceUser.tolist()),str(distanceStg.tolist())
-      )
-    
-    with open(optdir + "hydrogen_plant_data_%s.dzn"%(random), "w") as file:
-        file.write(string)
-        
-        file.write("%% Power output time series from reference PV plant (W)\n")
-        file.write("PV_REF_POUT= [")
+MODEL_FILE = MINIZINC_DIR / "hydrogen_plant_MILP.mzn"
+PROJECT_LIFETIME_YEARS = 25
+PV_REFERENCE_CAPACITY_KW = 1_000.0
+WIND_REFERENCE_CAPACITY_KW = 320_000.0
+GUROBI_RELATIVE_GAP = 0.001
 
-        # Loop through the rows of the 2D array
-        for i,row in enumerate(PV_REF_POUT):
-            file.write("|")
-            # Loop through the elements of each row
-            for j, element in enumerate(row):
-                file.write(str(element))
-                if j < len(row) - 1 or i!=len(PV_REF_POUT)-1:
-                    file.write(", ")
-            
-            # Close the row
-            if i!=len(PV_REF_POUT)-1:
-                file.write(" \n")
 
-        file.write(" |];")
-        
-        file.write(" \n")
-        file.write(" \n")
-        
-        file.write("%% Power output time series from reference Wind plant (W)\n")
-        file.write("WIND_REF_POUT= [")
+def _as_python_list(values) -> list:
+    """Convert NumPy/pandas numeric values to plain Python values for .dzn."""
+    return np.asarray(values).tolist()
 
-        # Loop through the rows of the 2D array
-        for i,row in enumerate(WIND_REF_POUT):
-            file.write("|")
-            # Loop through the elements of each row
-            for j, element in enumerate(row):
-                file.write(str(element))
-                if j < len(row) - 1 or i!=len(WIND_REF_POUT)-1:
-                    file.write(", ")
-            
-            # Close the row
-            if i!=len(WIND_REF_POUT)-1:
-                file.write(" \n")
 
-        file.write(" |];")
-        
-        file.write(" \n")
-        file.write(" \n")
-        file.write("distancePV= [")
-        
-        # Loop through the rows of the 2D array
-        for i,row in enumerate(distancePV):
-            file.write("|")
-            # Loop through the elements of each row
-            for j, element in enumerate(row):
-                file.write(str(element))
-                if j < len(row) - 1 or i!=len(distancePV)-1:
-                    file.write(", ")
-            
-            # Close the row
-            if i!=len(distancePV)-1:
-                file.write(" \n")
-        file.write(" |];")
-        
-        file.write(" \n")
-        file.write(" \n")
-        file.write("distanceWind= [")
-        # Loop through the rows of the 2D array
-        for i,row in enumerate(distanceWind):
-            file.write("|")
-            # Loop through the elements of each row
-            for j, element in enumerate(row):
-                file.write(str(element))
-                if j < len(row) - 1 or i!=len(distanceWind)-1:
-                    file.write(", ")
-            
-            # Close the row
-            if i!=len(distanceWind)-1:
-                file.write(" \n")
-        file.write(" |];")
-        
-        
+def _write_minizinc_matrix(stream, name: str, matrix) -> None:
+    """Write a two-dimensional numeric array using MiniZinc matrix syntax."""
+    array = np.asarray(matrix)
+    stream.write(f"{name} = [")
+    for row_index, row in enumerate(array):
+        stream.write("|")
+        stream.write(", ".join(str(float(value)) for value in row))
+        if row_index < len(array) - 1:
+            stream.write("\n")
+    stream.write("|];\n\n")
+
+
+def make_dzn_file(
+    DT,
+    EL_ETA,
+    BAT_ETA_in,
+    BAT_ETA_out,
+    C_PV,
+    C_WIND,
+    C_EL,
+    C_UG_STORAGE,
+    UG_STORAGE_CAPA_MAX,
+    C_PIPE_STORAGE,
+    PIPE_STORAGE_CAPA_MIN,
+    C_BAT_ENERGY,
+    C_BAT_POWER,
+    OM_PV,
+    OM_WIND,
+    OM_EL,
+    OM_UG,
+    DIS_RATE,
+    CF,
+    PV_REF,
+    WIND_REF,
+    LOAD,
+    PV_REF_POUT,
+    WIND_REF_POUT,
+    Area,
+    distancePV,
+    distanceWind,
+    distanceUser,
+    distanceStg,
+    C_stg_ratio,
+    C_trans_ratio,
+    C_pipe_ratio,
+    storage_type,
+    random,
+):
+    """Write the MiniZinc data file for one optimisation scenario.
+
+    ``C_stg_ratio`` and ``storage_type`` are retained in the function signature
+    for backward compatibility with the scenario dictionary, although their
+    effects have already been applied before this function is called.
+    """
+    del C_stg_ratio, storage_type  # already incorporated upstream
+
+    crf = DIS_RATE * (1 + DIS_RATE) ** PROJECT_LIFETIME_YEARS / (
+        (1 + DIS_RATE) ** PROJECT_LIFETIME_YEARS - 1
+    )
+    h_total = (CF / 100.0) * sum(LOAD) * DT * 3600.0
+
+    capacity_levels = [0, 116000, 579000, 2894000, 5787000]
+    trans_capex_values = (
+        np.array([0, 826695, 1211205, 2018674, 2556988], dtype=float)
+        * C_trans_ratio
+    ).tolist()
+    pipe_capex_values = (
+        np.array([0, 314691, 646349, 1539750, 2258811], dtype=float)
+        * C_pipe_ratio
+    ).tolist()
+
+    trans_opex_ratio = 0.005 * C_trans_ratio
+    pipe_opex_ratio = 0.0225 * C_pipe_ratio
+
+    data_file = MINIZINC_DIR / f"hydrogen_plant_data_{random}.dzn"
+    load_list = [float(value) for value in LOAD]
+
+    with data_file.open("w", encoding="utf-8", newline="\n") as stream:
+        lines = [
+            f"N = {len(load_list)};",
+            f"n_PV = {len(PV_REF_POUT)};",
+            f"n_wind = {len(WIND_REF_POUT)};",
+            f"DT = {float(DT):.2f};",
+            f"n_project = {PROJECT_LIFETIME_YEARS};",
+            f"EL_ETA = {float(EL_ETA):.2f};",
+            f"BAT_ETA_in = {float(BAT_ETA_in):.2f};",
+            f"BAT_ETA_out = {float(BAT_ETA_out):.2f};",
+            "",
+            f"C_PV = {float(C_PV):.2f};",
+            f"C_WIND = {float(C_WIND):.2f};",
+            f"C_EL = {float(C_EL):.2f};",
+            f"C_UG_STORAGE = {float(C_UG_STORAGE):.2f};",
+            f"UG_STORAGE_CAPA_MAX = {float(UG_STORAGE_CAPA_MAX):.2f};",
+            f"C_PIPE_STORAGE = {float(C_PIPE_STORAGE):.2f};",
+            f"PIPE_STORAGE_CAPA_MIN = {float(PIPE_STORAGE_CAPA_MIN):.2f};",
+            f"C_BAT_ENERGY = {float(C_BAT_ENERGY):.2f};",
+            f"C_BAT_POWER = {float(C_BAT_POWER):.2f};",
+            "",
+            f"OM_PV = {float(OM_PV):.2f};",
+            f"OM_WIND = {float(OM_WIND):.2f};",
+            f"OM_EL = {float(OM_EL):.2f};",
+            f"OM_UG = {float(OM_UG):.2f};",
+            "",
+            f"RES_H_CAPA = {(1 - CF / 100.0) * sum(load_list) * DT * 3600.0:.2f};",
+            f"PV_REF = {float(PV_REF):.2f};",
+            f"WIND_REF = {float(WIND_REF):.2f};",
+            f"LOAD = {load_list};",
+            f"DIS_RATE = {float(DIS_RATE)};",
+            f"crf = {float(crf)};",
+            f"H_total = {float(h_total)};",
+            f"Area = {_as_python_list(Area)};",
+            f"capacityLevels = {capacity_levels};",
+            f"TranscapexValues = {trans_capex_values};",
+            f"PipecapexValues = {pipe_capex_values};",
+            f"TransopexRatio = {float(trans_opex_ratio)};",
+            f"PipeopexRatio = {float(pipe_opex_ratio)};",
+            f"distanceUser = {_as_python_list(distanceUser)};",
+            f"distanceStg = {_as_python_list(distanceStg)};",
+            "",
+        ]
+        stream.write("\n".join(lines))
+
+        _write_minizinc_matrix(stream, "PV_REF_POUT", PV_REF_POUT)
+        _write_minizinc_matrix(stream, "WIND_REF_POUT", WIND_REF_POUT)
+        _write_minizinc_matrix(stream, "distancePV", distancePV)
+        _write_minizinc_matrix(stream, "distanceWind", distanceWind)
+
+    return data_file
+
+
+def _parse_minizinc_output(output: str) -> dict[str, np.ndarray]:
+    """Parse the deliberately simple ``key=value;`` MiniZinc output format."""
+    result_block = None
+    for block in output.split("!"):
+        if "CAPEX=" in block:
+            result_block = block
+            break
+
+    if result_block is None:
+        raise RuntimeError("MiniZinc returned no parseable optimisation result.")
+
+    results: dict[str, np.ndarray] = {}
+    for item in result_block.split(";"):
+        item = item.strip()
+        if not item or "=" not in item:
+            continue
+        key, value = item.split("=", 1)
+        value = value.strip().strip("[]")
+        if value:
+            results[key.strip()] = np.fromstring(value, sep=",", dtype=float)
+        else:
+            results[key.strip()] = np.array([], dtype=float)
+    return results
+
+
 def Minizinc(simparams):
+    """Solve one generated MiniZinc model instance with Gurobi.
+
+    One solver thread is used per process. This is intentional for NCI runs in
+    which independent scenarios are distributed across MPI ranks.
     """
-    Parameters
-    ----------
-    simparams : a dictionary including the following parameters:
-        DT, ETA_PV, ETA_EL, C_PV, C_W, C_E, C_HS, CF, pv_ref_capa,
-                  W, pv_ref_out, L
+    data_file = MINIZINC_DIR / f"hydrogen_plant_data_{simparams['random']}.dzn"
+    command = [
+        "minizinc",
+        "--soln-sep",
+        '""',
+        "--search-complete-msg",
+        '""',
+        "--solver",
+        "gurobi",
+        "--parallel",
+        "1",
+        "--relGap",
+        str(GUROBI_RELATIVE_GAP),
+        str(MODEL_FILE),
+        str(data_file),
+    ]
 
-    Returns
-    -------
-    a list of outputs including the optimal values for CAPEX, p-pv, p_w, p_e,
-    e_hs
+    try:
+        completed = subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return _parse_minizinc_output(completed.stdout)
+    except subprocess.CalledProcessError as exc:
+        message = (
+            "MiniZinc/Gurobi failed.\n"
+            f"Command: {' '.join(command)}\n"
+            f"stdout:\n{exc.stdout}\n"
+            f"stderr:\n{exc.stderr}"
+        )
+        raise RuntimeError(message) from exc
+    finally:
+        data_file.unlink(missing_ok=True)
 
+
+def Optimise(
+    load,
+    cf,
+    simparams,
+    PV_location,
+    Wind_location,
+    Area,
+    distancePV,
+    distanceWind,
+    distanceUser,
+    distanceStg,
+    random_number,
+):
+    """Build renewable profiles and solve one hydrogen-hub scenario.
+
+    Parameters retain the names used by the original project code so existing
+    scenario wrappers continue to work.
     """
-    #make_dzn_file(**simparams)
-    
-    #mzdir = parent_directory + os.sep + 'MiniZinc'
-    # I commented out the mzdir command because it is annoyying to refer to the installation dir
-    # in different systems. I think a better way is that we add minizinc to an environment variable 
-    #during the installation
-    
-    minizinc_data_file_name = "hydrogen_plant_data_%s.dzn"%(simparams['random'])
-    from subprocess import check_output
-    output = str(check_output([#mzdir + 
-                               'minizinc', 
-                               "--soln-sep", '""',
-                               "--search-complete-msg", '""', 
-                               "--solver","gurobi", 
-                               "--relGap", "0.001",
-                               optdir + "hydrogen_plant.mzn",
-                               optdir + minizinc_data_file_name]))
-    
-    output = output.replace('[','').replace(']','').split('!')
-    for string in output:
-        if 'CAPEX' in string:
-            results = string.split(';')
-    
-    results = list(filter(None, results))
-    
-    RESULTS = {}
-    for x in results:
-        RESULTS[x.split('=')[0]]=np.array((x.split('=')[1]).split(',')).astype(float)        
-    
-    #remove the minizinc data file after running the minizinc model
-    
-    mzfile = optdir + minizinc_data_file_name
-    if os.path.exists(mzfile):
-        os.remove(mzfile)
-    
-    
-    return(  RESULTS  )
+    simparams.update(CF=cf)
+    storage_type = simparams["storage_type"]
 
-def Optimise(load, cf, simparams,PV_location,Wind_location,Area,distancePV,distanceWind,distanceUser,distanceStg,random_number):
-    simparams.update(CF = cf)
-    storage_type = simparams['storage_type']
-    
-    PV_pv_ref_pout = np.array([])
-    Wind_ref_pout = np.array([])
-    
-    for loc2 in Wind_location:
-        #Update the weather data files
-        WindSource_windlab(loc2,random_number)
-        
-        wind_ref = 320e3 #(kW)
-        wind_ref_pout = list(np.trunc(100*np.array(wind_gen(loc2,random_number)))/100)
-        Wind_ref_pout = np.append(Wind_ref_pout,wind_ref_pout)
-    
-    Wind_ref_pout = Wind_ref_pout.reshape(len(Wind_location),len(wind_ref_pout))
-    i = 1
-    for loc in PV_location:
-        SolarResource(loc,random_number)
-        print (loc)
-        pv_ref = 1e3 #(kW)
-        pv_ref_pout = list(np.trunc(100*np.array(pv_gen(pv_ref,random_number)))/100)
-        PV_pv_ref_pout = np.append(PV_pv_ref_pout,pv_ref_pout)
-        i=i+1
-        
-    PV_pv_ref_pout = PV_pv_ref_pout.reshape(len(PV_location),len(pv_ref_pout))
-    
-    if storage_type!='Pipeline':
-        initial_ug_capa = 110
-    else:
-        initial_ug_capa = 0
-        
-    simparams.update(DT = 1,#[s] time steps
-                     PV_REF = pv_ref, #capacity of reference PV plant (kW)
-                     WIND_REF = wind_ref, #capacity of reference wind farm (kW)
-                     C_UG_STORAGE = Cost_hs(initial_ug_capa, storage_type)*simparams['C_stg_ratio'],
-                     LOAD = [load for i in range(len(pv_ref_pout))], #[kgH2/s] load profile timeseries
-                     CF = cf,           #capacity factor
-                     #C_pipe = C_pipe,
-                     PV_REF_POUT = PV_pv_ref_pout,
-                     WIND_REF_POUT = Wind_ref_pout,
-                     Area = Area,
-                     distancePV = distancePV,
-                     distanceWind = distanceWind,
-                     distanceUser = distanceUser,
-                     distanceStg = distanceStg,
-                     random = random_number
-                     )
+    wind_profiles = []
+    for location in Wind_location:
+        WindSource_windlab(location, random_number)
+        profile = np.asarray(wind_gen(location, random_number), dtype=float)
+        wind_profiles.append(np.trunc(100.0 * profile) / 100.0)
+    wind_ref_pout = np.vstack(wind_profiles)
+
+    pv_profiles = []
+    for location in PV_location:
+        SolarResource(location, random_number)
+        profile = np.asarray(
+            pv_gen(PV_REFERENCE_CAPACITY_KW, random_number), dtype=float
+        )
+        pv_profiles.append(np.trunc(100.0 * profile) / 100.0)
+    pv_ref_pout = np.vstack(pv_profiles)
+
+    initial_ug_capa = 0.0 if storage_type == "Pipeline" else 110.0
+
+    simparams.update(
+        DT=1.0,  # hourly time step
+        PV_REF=PV_REFERENCE_CAPACITY_KW,
+        WIND_REF=WIND_REFERENCE_CAPACITY_KW,
+        C_UG_STORAGE=Cost_hs(initial_ug_capa, storage_type)
+        * simparams["C_stg_ratio"],
+        LOAD=[float(load)] * pv_ref_pout.shape[1],
+        CF=cf,
+        PV_REF_POUT=pv_ref_pout,
+        WIND_REF_POUT=wind_ref_pout,
+        Area=Area,
+        distancePV=distancePV,
+        distanceWind=distanceWind,
+        distanceUser=distanceUser,
+        distanceStg=distanceStg,
+        random=random_number,
+    )
 
     make_dzn_file(**simparams)
     results = Minizinc(simparams)
-    
-    if storage_type == 'Depleted gas':
-        initial_ug_capa = results['ug_storage_capa'][0]/1e3 # no need for iteration
-    
-    if simparams['UG_STORAGE_CAPA_MAX']>0:
-        new_ug_capa = results['ug_storage_capa'][0]/1e3
-        if np.mean([new_ug_capa,initial_ug_capa]) > 0:
-            if abs(new_ug_capa - initial_ug_capa)/np.mean([new_ug_capa,initial_ug_capa]) > 0.05:
-                initial_ug_capa = new_ug_capa
-                print('Refining storage cost; new storage capa=', initial_ug_capa)
-                simparams['C_UG_STORAGE'] = Cost_hs(initial_ug_capa, storage_type)*simparams['C_stg_ratio']
-                #results = Pulp(simparams)
+
+    # Underground-storage unit cost depends on cavern size. The original
+    # workflow performs one refinement if the first solution differs by >5%
+    # from the initial size used for the cost estimate.
+    if storage_type == "Depleted gas":
+        initial_ug_capa = results["ug_storage_capa"][0] / 1e3
+
+    if simparams["UG_STORAGE_CAPA_MAX"] > 0:
+        new_ug_capa = results["ug_storage_capa"][0] / 1e3
+        mean_capa = np.mean([new_ug_capa, initial_ug_capa])
+        if new_ug_capa > 0 and mean_capa > 0:
+            relative_change = abs(new_ug_capa - initial_ug_capa) / mean_capa
+            if relative_change > 0.05:
+                simparams["C_UG_STORAGE"] = (
+                    Cost_hs(new_ug_capa, storage_type)
+                    * simparams["C_stg_ratio"]
+                )
                 make_dzn_file(**simparams)
                 results = Minizinc(simparams)
-    
-    results.update(CF=simparams['CF'],
-                   C_UG_STORAGE=simparams['C_UG_STORAGE'])
-    
-    return(results,simparams)
 
-    
-def Cost_hs(size,storage_type):
-    """
-    This function calculates the unit cost of storage as a function of size
-    
-    Parameters
-    ----------
-    size: storage capacity in kg of H2
-    storage_type: underground storage type; 
-                one of ['Lined Rock', 'Salt Cavern']
+    results.update(CF=simparams["CF"], C_UG_STORAGE=simparams["C_UG_STORAGE"])
+    return results, simparams
 
-    Returns unit cost of storage in USD/kg of H2
-        
+
+def Cost_hs(size, storage_type):
+    """Return hydrogen-storage unit CAPEX in USD/kg-H2.
+
+    The correlations are retained from the original project implementation.
+    ``size`` is expressed in the units used by those correlations (the caller
+    passes optimisation storage capacity divided by 1e3).
     """
-    if storage_type == 'Salt Cavern' or storage_type == 'Lined Rock':
+    size = float(size)
+
+    if storage_type in {"Salt Cavern", "Lined Rock"}:
+        if size <= 0:
+            raise ValueError(
+                f"{storage_type} cost correlation requires a positive size."
+            )
         x = np.log10(size)
-        if size > 100:
-            if storage_type == 'Salt Cavern':
-                cost=10 ** (0.212669*x**2 - 1.638654*x + 4.403100)
-                if size > 8000:
-                    cost = 17.66
-            elif storage_type == 'Lined Rock':
-                cost =10 ** (   0.217956*x**2 - 1.575209*x + 4.463930  )
-                if size > 4000:
-                    cost = 41.48
-        else:
-            cost = 10 ** (-0.0285*x + 2.7853)
-    elif storage_type == 'Depleted gas':
-        cost = 2.72*0.746
-        print ('Depleted gas' + str(cost))
-    elif storage_type == 'Pipeline':
-        cost = 516
-    return(cost)
+        if size <= 100:
+            return 10 ** (-0.0285 * x + 2.7853)
+        if storage_type == "Salt Cavern":
+            return 17.66 if size > 8000 else 10 ** (
+                0.212669 * x**2 - 1.638654 * x + 4.403100
+            )
+        return 41.48 if size > 4000 else 10 ** (
+            0.217956 * x**2 - 1.575209 * x + 4.463930
+        )
+
+    if storage_type == "Depleted gas":
+        return 2.72 * 0.746
+    if storage_type == "Pipeline":
+        return 516.0
+
+    raise ValueError(f"Unsupported storage type: {storage_type}")
