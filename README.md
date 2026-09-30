@@ -163,3 +163,5 @@ The cleaned repository intentionally preserves the optimisation equations and
 output keys used by the current study. A separate `CLEANUP_NOTES.md` records
 code-cleaning changes and a small number of modelling details that should be
 reviewed before the repository is archived with a publication.
+
+[View the published paper](https://doi.org/10.1016/j.ijhydene.2026.157831)
